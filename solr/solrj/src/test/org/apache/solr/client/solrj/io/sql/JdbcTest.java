@@ -45,7 +45,6 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
 
   private static final String SOLR_HOME = getFile("solrj" + File.separator + "solr").getAbsolutePath();
 
-
   static {
     schemaString = "schema-sql.xml";
   }
@@ -69,12 +68,10 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     return SOLR_HOME;
   }
 
-
   @Override
   public void distribSetUp() throws Exception {
     super.distribSetUp();
   }
-
 
   @Override
   @After
