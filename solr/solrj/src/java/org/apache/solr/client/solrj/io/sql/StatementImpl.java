@@ -63,7 +63,6 @@ class StatementImpl implements Statement {
 
   @Override
   public ResultSet executeQuery(String sql) throws SQLException {
-
     try {
       closed = false;  // If closed reopen so Statement can be reused.
       this.solrStream = constructStream(sql);
@@ -77,7 +76,6 @@ class StatementImpl implements Statement {
   }
 
   protected SolrStream constructStream(String sql) throws IOException {
-
     try {
       ZkStateReader zkStateReader = client.getZkStateReader();
       ClusterState clusterState = zkStateReader.getClusterState();
@@ -149,7 +147,7 @@ class StatementImpl implements Statement {
 
   @Override
   public void setMaxRows(int max) throws SQLException {
-    //throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -174,12 +172,13 @@ class StatementImpl implements Statement {
 
   @Override
   public SQLWarning getWarnings() throws SQLException {
+    // TODO?
     return null;
   }
 
   @Override
   public void clearWarnings() throws SQLException {
-
+    // TODO
   }
 
   @Override
