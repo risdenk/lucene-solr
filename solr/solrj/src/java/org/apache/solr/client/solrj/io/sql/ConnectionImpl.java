@@ -80,6 +80,9 @@ class ConnectionImpl implements Connection {
 
   @Override
   public boolean getAutoCommit() throws SQLException {
+    if(isClosed()) {
+      throw new SQLException("Connection is closed");
+    }
     return false;
   }
 
