@@ -147,6 +147,13 @@ class StatementImpl implements Statement {
 
   @Override
   public void setMaxRows(int max) throws SQLException {
+    if(isClosed()) {
+      throw new SQLException("Statement is closed");
+    }
+    if(max < 0) {
+      throw new SQLException("Max is less than 0");
+    }
+
     throw new UnsupportedOperationException();
   }
 
