@@ -70,7 +70,7 @@ public class RankStream extends TupleStream implements Expressible {
       throw new IOException(String.format(Locale.ROOT,"Invalid expression %s - expecting a single 'n' parameter of type positive integer but didn't find one",expression));
     }
     String nStr = ((StreamExpressionValue)nParam.getParameter()).getValue();
-    int nInt = 0;
+    int nInt;
     try{
       nInt = Integer.parseInt(nStr);
       if(nInt <= 0){
@@ -122,20 +122,21 @@ public class RankStream extends TupleStream implements Expressible {
     
     return expression;   
   }
-  
-  public void setStreamContext(StreamContext context) {
-    this.stream.setStreamContext(context);
+
+  @Override
+  public StreamContext getStreamContext() {
+    return this.stream.getStreamContext();
   }
 
   public List<TupleStream> children() {
-    List<TupleStream> l =  new ArrayList();
+    List<TupleStream> l =  new ArrayList<>();
     l.add(stream);
     return l;
   }
 
   public void open() throws IOException {
-    this.top = new PriorityQueue(size, new ReverseComp(comp));
-    this.topList = new LinkedList();
+    this.top = new PriorityQueue<>(size, new ReverseComp(comp));
+    this.topList = new LinkedList<>();
     stream.open();
   }
 

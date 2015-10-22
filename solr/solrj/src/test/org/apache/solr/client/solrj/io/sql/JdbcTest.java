@@ -102,199 +102,143 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     String zkHost = zkServer.getZkAddress();
 
     Properties props = new Properties();
-    Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props);
-    Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i desc limit 2");
+    try(Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
+      try(Statement stmt = con.createStatement()) {
+        try (ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i desc limit 2")) {
+          assert (rs.next());
+          assert (rs.getLong(1) == 14);
+          assert (rs.getLong("a_i") == 14);
+          assert (rs.getString(2).equals("hello0"));
+          assert (rs.getString("a_s").equals("hello0"));
+          assert (rs.getDouble(3) == 10);
+          assert (rs.getDouble("a_f") == 10);
 
-    assert(rs.next());
-    assert(rs.getLong("a_i") == 14);
-    assert(rs.getString("a_s").equals("hello0"));
-    assert(rs.getDouble("a_f") == 10);
+          assert (rs.next());
+          assert (rs.getLong(1) == 13);
+          assert (rs.getLong("a_i") == 13);
+          assert (rs.getString(2).equals("hello3"));
+          assert (rs.getString("a_s").equals("hello3"));
+          assert (rs.getDouble(3) == 9);
+          assert (rs.getDouble("a_f") == 9);
+          assert (!rs.next());
+        }
 
-    assert(rs.next());
-    assert(rs.getLong("a_i") == 13);
-    assert(rs.getString("a_s").equals("hello3"));
-    assert(rs.getDouble("a_f") == 9);
-    assert(!rs.next());
-    stmt.close();
+        //Test statement reuse
+        try(ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i asc limit 2")) {
+          assert (rs.next());
+          assert (rs.getLong("a_i") == 0);
+          assert (rs.getString("a_s").equals("hello0"));
+          assert (rs.getDouble("a_f") == 1);
 
-    //Test statement reuse
-    rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i asc limit 2");
-    assert(rs.next());
-    assert(rs.getLong("a_i") == 0);
-    assert(rs.getString("a_s").equals("hello0"));
-    assert(rs.getDouble("a_f") == 1);
+          assert (rs.next());
+          assert (rs.getLong("a_i") == 1);
+          assert (rs.getString("a_s").equals("hello0"));
+          assert (rs.getDouble("a_f") == 5);
+          assert (!rs.next());
+        }
+      }
 
-    assert(rs.next());
-    assert(rs.getLong("a_i") == 1);
-    assert(rs.getString("a_s").equals("hello0"));
-    assert(rs.getDouble("a_f") == 5);
-    assert(!rs.next());
-    stmt.close();
+      //Test connection reuse
+      try(Statement stmt = con.createStatement()) {
+        try (ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i desc limit 2")) {
+          assert (rs.next());
+          assert (rs.getLong("a_i") == 14);
+          assert (rs.next());
+          assert (rs.getLong("a_i") == 13);
+        }
 
-    //Test connection reuse
-    stmt = con.createStatement();
-    rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i desc limit 2");
-    assert(rs.next());
-    assert(rs.getLong("a_i") == 14);
-    assert(rs.next());
-    assert(rs.getLong("a_i") == 13);
-    stmt.close();
+        //Test statement reuse
+        try (ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i asc limit 2")) {
+          assert (rs.next());
+          assert (rs.getLong("a_i") == 0);
+          assert (rs.next());
+          assert (rs.getLong("a_i") == 1);
+          assert (!rs.next());
+        }
 
-    //Test statement reuse
-    rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i asc limit 2");
-    assert(rs.next());
-    assert(rs.getLong("a_i") == 0);
-    assert(rs.next());
-    assert(rs.getLong("a_i") == 1);
-    assert(!rs.next());
-    stmt.close();
+        //Test simple loop
+        try(ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i asc limit 100")) {
+          int count = 0;
+          while (rs.next()) {
+            ++count;
+          }
 
-    //Test simple loop
-    rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i asc limit 100");
-    int count = 0;
-    while(rs.next()) {
-      ++count;
+          assert (count == 10);
+        }
+      }
     }
-
-    assert(count == 10);
-
-    stmt.close();
-    con.close();
 
     //Test facet aggregation
     props = new Properties();
     props.put("aggregationMode", "facet");
-    con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props);
-    stmt = con.createStatement();
-    rs = stmt.executeQuery("select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc");
+    try(Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
+      try(Statement stmt = con.createStatement()) {
+        try (ResultSet rs = stmt.executeQuery(
+            "select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc")) {
 
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello3"));
-    assert(rs.getDouble("sum(a_f)") == 26);
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello3"));
+          assert (rs.getDouble("sum(a_f)") == 26);
 
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello0"));
+          assert (rs.getDouble("sum(a_f)") == 18);
 
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello0"));
-    assert(rs.getDouble("sum(a_f)") == 18);
-
-
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello4"));
-    assert(rs.getDouble("sum(a_f)") == 11);
-
-    stmt.close();
-    con.close();
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello4"));
+          assert (rs.getDouble("sum(a_f)") == 11);
+        }
+      }
+    }
 
     //Test map / reduce aggregation
     props = new Properties();
     props.put("aggregationMode", "map_reduce");
     props.put("numWorkers", "2");
-    con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props);
-    stmt = con.createStatement();
-    rs = stmt.executeQuery("select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc");
+    try(Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
+      try(Statement stmt = con.createStatement()) {
+        try(ResultSet rs = stmt.executeQuery(
+            "select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc")) {
 
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello3"));
-    assert(rs.getDouble("sum(a_f)") == 26);
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello3"));
+          assert (rs.getDouble("sum(a_f)") == 26);
 
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello0"));
-    assert(rs.getDouble("sum(a_f)") == 18);
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello0"));
+          assert (rs.getDouble("sum(a_f)") == 18);
 
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello4"));
-    assert(rs.getDouble("sum(a_f)") == 11);
-
-    stmt.close();
-    con.close();
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello4"));
+          assert (rs.getDouble("sum(a_f)") == 11);
+        }
+      }
+    }
 
     //Test params on the url
-    con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1&aggregationMode=map_reduce&numWorkers=2");
+    try(Connection con = DriverManager.getConnection(
+        "jdbc:solr://" + zkHost + "?collection=collection1&aggregationMode=map_reduce&numWorkers=2")) {
+      Properties p = ((ConnectionImpl)con).props;
+      assert(p.getProperty("aggregationMode").equals("map_reduce"));
+      assert(p.getProperty("numWorkers").equals("2"));
 
-    Properties p = ((ConnectionImpl) con).props;
+      try(Statement stmt = con.createStatement()) {
+        try (ResultSet rs = stmt.executeQuery(
+            "select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc")) {
 
-    assert(p.getProperty("aggregationMode").equals("map_reduce"));
-    assert(p.getProperty("numWorkers").equals("2"));
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello3"));
+          assert (rs.getDouble("sum(a_f)") == 26);
 
-    stmt = con.createStatement();
-    rs = stmt.executeQuery("select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc");
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello0"));
+          assert (rs.getDouble("sum(a_f)") == 18);
 
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello3"));
-    assert(rs.getDouble("sum(a_f)") == 26);
-
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello0"));
-    assert(rs.getDouble("sum(a_f)") == 18);
-
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello4"));
-    assert(rs.getDouble("sum(a_f)") == 11);
-
-    stmt.close();
-    con.close();
-
-    // Test JDBC paramters in URL
-    con = DriverManager.getConnection(
-        "jdbc:solr://" + zkHost + "?collection=collection1&username=&password=&testKey1=testValue&testKey2");
-
-    p = ((ConnectionImpl) con).props;
-    assert(p.getProperty("username").equals(""));
-    assert(p.getProperty("password").equals(""));
-    assert(p.getProperty("testKey1").equals("testValue"));
-    assert(p.getProperty("testKey2").equals(""));
-
-    stmt = con.createStatement();
-    rs = stmt.executeQuery("select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc");
-
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello3"));
-    assert(rs.getDouble("sum(a_f)") == 26);
-
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello0"));
-    assert(rs.getDouble("sum(a_f)") == 18);
-
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello4"));
-    assert(rs.getDouble("sum(a_f)") == 11);
-
-    stmt.close();
-    con.close();
-
-    // Test JDBC paramters in properties
-    Properties providedProperties = new Properties();
-    providedProperties.put("collection", "collection1");
-    providedProperties.put("username", "");
-    providedProperties.put("password", "");
-    providedProperties.put("testKey1", "testValue");
-    providedProperties.put("testKey2", "");
-
-    con = DriverManager.getConnection("jdbc:solr://" + zkHost, providedProperties);
-
-    p = ((ConnectionImpl) con).props;
-    assert(p.getProperty("username").equals(""));
-    assert(p.getProperty("password").equals(""));
-    assert(p.getProperty("testKey1").equals("testValue"));
-    assert(p.getProperty("testKey2").equals(""));
-
-    stmt = con.createStatement();
-    rs = stmt.executeQuery("select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc");
-
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello3"));
-    assert(rs.getDouble("sum(a_f)") == 26);
-
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello0"));
-    assert(rs.getDouble("sum(a_f)") == 18);
-
-    assert(rs.next());
-    assert(rs.getString("a_s").equals("hello4"));
-    assert(rs.getDouble("sum(a_f)") == 11);
-
-    stmt.close();
-    con.close();
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello4"));
+          assert (rs.getDouble("sum(a_f)") == 11);
+        }
+      }
+    }
   }
 }

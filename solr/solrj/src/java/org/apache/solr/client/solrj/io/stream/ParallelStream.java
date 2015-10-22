@@ -25,11 +25,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.solr.client.solrj.io.Tuple;
@@ -109,7 +107,7 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
       throw new IOException(String.format(Locale.ROOT,"Invalid expression %s - expecting a single 'workersParam' parameter of type positive integer but didn't find one",expression));
     }
     String workersStr = ((StreamExpressionValue)workersParam.getParameter()).getValue();
-    int workersInt = 0;
+    int workersInt;
     try{
       workersInt = Integer.parseInt(workersStr);
       if(workersInt <= 0){
@@ -192,7 +190,7 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
   }
   
   public List<TupleStream> children() {
-    List l = new ArrayList();
+    List<TupleStream> l = new ArrayList<>();
     l.add(tupleStream);
     return l;
   }
@@ -201,7 +199,7 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
     Tuple tuple = _read();
 
     if(tuple.EOF) {
-      Map m = new HashMap();
+      Map<Object, Object> m = new HashMap<>();
       m.put("EOF", true);
       Tuple t = new Tuple(m);
 
@@ -225,18 +223,10 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
     return tuple;
   }
 
-  public void setStreamContext(StreamContext streamContext) {
-    this.streamContext = streamContext;
-    if(streamFactory == null) {
-      this.streamFactory = streamContext.getStreamFactory();
-    }
-    this.tupleStream.setStreamContext(streamContext);
-  }
-
   protected void constructStreams() throws IOException {
 
     try {
-      Object pushStream = null;
+      Object pushStream;
 
       if (objectSerialize) {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -252,7 +242,7 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
       ZkStateReader zkStateReader = cloudSolrClient.getZkStateReader();
       ClusterState clusterState = zkStateReader.getClusterState();
       Collection<Slice> slices = clusterState.getActiveSlices(this.collection);
-      List<Replica> shuffler = new ArrayList();
+      List<Replica> shuffler = new ArrayList<>();
       for(Slice slice : slices) {
         Collection<Replica> replicas = slice.getReplicas();
         for (Replica replica : replicas) {
@@ -267,13 +257,13 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
       Collections.shuffle(shuffler, new Random());
 
       for(int w=0; w<workers; w++) {
-        HashMap params = new HashMap();
+        Map<String, Object> params = new HashMap<>();
         params.put("distrib","false"); // We are the aggregator.
         params.put("numWorkers", workers);
         params.put("workerID", w);
         params.put("stream", pushStream);
         params.put("qt","/stream");
-        params.put("objectSerialize", objectSerialize);
+        params.put("objectSerialize", Boolean.toString(objectSerialize));
         Replica rep = shuffler.get(w);
         ZkCoreNodeProps zkProps = new ZkCoreNodeProps(rep);
         String url = zkProps.getCoreUrl();

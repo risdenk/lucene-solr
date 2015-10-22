@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -68,7 +69,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
 
   protected String zkHost;
   protected String collection;
-  protected Map<String,String> params;
+  protected Map<String, Object> params;
   private Map<String, String> fieldMappings;
   protected StreamComparator comp;
   private int zkConnectTimeout = 10000;
@@ -81,13 +82,13 @@ public class CloudSolrStream extends TupleStream implements Expressible {
   protected transient CloudSolrClient cloudSolrClient;
   protected transient List<TupleStream> solrStreams;
   protected transient TreeSet<TupleWrapper> tuples;
-  protected transient StreamContext streamContext;
+  protected transient StreamContext streamContext = new StreamContext();
 
   // Used by parallel stream
   protected CloudSolrStream(){
     
   }
-  public CloudSolrStream(String zkHost, String collectionName, Map params) throws IOException {
+  public CloudSolrStream(String zkHost, String collectionName, Map<String, Object> params) throws IOException {
     init(collectionName, zkHost, params);
   }
 
@@ -113,7 +114,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
       throw new IOException(String.format(Locale.ROOT,"invalid expression %s - at least one named parameter expected. eg. 'q=*:*'",expression));
     }
     
-    Map<String,String> params = new HashMap<String,String>();
+    Map<String, Object> params = new HashMap<>();
     for(StreamExpressionNamedParameter namedParam : namedParams){
       if(!namedParam.getName().equals("zkHost") && !namedParam.getName().equals("aliases")){
         params.put(namedParam.getName(), namedParam.getParameter().toString().trim());
@@ -161,8 +162,8 @@ public class CloudSolrStream extends TupleStream implements Expressible {
     expression.addParameter(collection);
     
     // parameters
-    for(Entry<String,String> param : params.entrySet()){
-      expression.addParameter(new StreamExpressionNamedParameter(param.getKey(), param.getValue()));
+    for(Entry<String,Object> param : params.entrySet()){
+      expression.addParameter(new StreamExpressionNamedParameter(param.getKey(), String.valueOf(param.getValue())));
     }
     
     // zkHost
@@ -184,7 +185,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
     return expression;   
   }
   
-  private void init(String collectionName, String zkHost, Map params) throws IOException {
+  private void init(String collectionName, String zkHost, Map<String, Object> params) throws IOException {
     this.zkHost = zkHost;
     this.collection = collectionName;
     this.params = params;
@@ -198,7 +199,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
     if(!params.containsKey("sort")){
       throw new IOException("sort param expected for a stream");
     }
-    this.comp = parseComp((String)params.get("sort"), (String)params.get("fl")); 
+    this.comp = parseComp((String)params.get("sort"), (String)params.get("fl"));
   }
   
   public void setFieldMappings(Map<String, String> fieldMappings) {
@@ -216,14 +217,19 @@ public class CloudSolrStream extends TupleStream implements Expressible {
     this.streamContext = context;
   }
 
+  @Override
+  public StreamContext getStreamContext() {
+    return this.streamContext;
+  }
+
   /**
   * Opens the CloudSolrStream
   *
   ***/
   public void open() throws IOException {
-    this.tuples = new TreeSet();
-    this.solrStreams = new ArrayList();
-    this.eofTuples = Collections.synchronizedMap(new HashMap());
+    this.tuples = new TreeSet<>();
+    this.solrStreams = new ArrayList<>();
+    this.eofTuples = Collections.synchronizedMap(new HashMap<>());
     if(this.cache != null) {
       this.cloudSolrClient = this.cache.getCloudSolrClient(zkHost);
     } else {
@@ -235,7 +241,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
   }
 
 
-  public Map getEofTuples() {
+  public Map<String, Tuple> getEofTuples() {
     return this.eofTuples;
   }
 
@@ -246,7 +252,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
   private StreamComparator parseComp(String sort, String fl) throws IOException {
 
     String[] fls = fl.split(",");
-    HashSet fieldSet = new HashSet();
+    Set<String> fieldSet = new HashSet<>();
     for(String f : fls) {
       fieldSet.add(f.trim()); //Handle spaces in the field list.
     }
@@ -307,11 +313,11 @@ public class CloudSolrStream extends TupleStream implements Expressible {
         }
       }
 
-      params.put("distrib","false"); // We are the aggregator.
+      params.put("distrib", false); // We are the aggregator.
 
       for(Slice slice : slices) {
         Collection<Replica> replicas = slice.getReplicas();
-        List<Replica> shuffler = new ArrayList();
+        List<Replica> shuffler = new ArrayList<>();
         for(Replica replica : replicas) {
           shuffler.add(replica);
         }
@@ -335,7 +341,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
   private void openStreams() throws IOException {
     ExecutorService service = ExecutorUtil.newMDCAwareCachedThreadPool(new SolrjNamedThreadFactory("CloudSolrStream"));
     try {
-      List<Future<TupleWrapper>> futures = new ArrayList();
+      List<Future<TupleWrapper>> futures = new ArrayList<>();
       for (TupleStream solrStream : solrStreams) {
         StreamOpener so = new StreamOpener((SolrStream) solrStream, comp);
         Future<TupleWrapper> future = service.submit(so);
@@ -393,7 +399,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
       }
       return t;
     } else {
-      Map m = new HashMap();
+      Map<Object, Object> m = new HashMap<>();
       if(trace) {
         m.put("_COLLECTION_", this.collection);
       }

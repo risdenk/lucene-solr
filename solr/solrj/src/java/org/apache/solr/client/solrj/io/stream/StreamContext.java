@@ -20,7 +20,6 @@ package org.apache.solr.client.solrj.io.stream;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.solr.client.solrj.io.SolrClientCache;
 import org.apache.solr.client.solrj.io.stream.expr.StreamFactory;
@@ -36,18 +35,14 @@ import org.apache.solr.client.solrj.io.stream.expr.StreamFactory;
 
 public class StreamContext implements Serializable{
 
-  private Map entries = new HashMap();
+  private Map<Object, Object> entries = new HashMap<>();
   public int workerID;
   public int numWorkers;
   private SolrClientCache clientCache;
   private StreamFactory streamFactory;
 
-  public Object get(Object key) {
-    return entries.get(key);
-  }
-
-  public void put(Object key, Object value) {
-    this.entries.put(key, value);
+  public Map<Object, Object> getEntries() {
+    return entries;
   }
 
   public void setSolrClientCache(SolrClientCache clientCache) {

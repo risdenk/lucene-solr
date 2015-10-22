@@ -60,7 +60,7 @@ public class StreamExpressionNamedParameter implements StreamExpressionParameter
     setParameter(parameter);
     return this;
   }
-  public void setParameter(String parameter){
+  public void setParameter(String parameter) {
     this.parameter = new StreamExpressionValue(parameter);
   }
   public StreamExpressionNamedParameter withParameter(String parameter){

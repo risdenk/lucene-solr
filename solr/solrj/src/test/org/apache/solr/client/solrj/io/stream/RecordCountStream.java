@@ -78,13 +78,14 @@ public class RecordCountStream extends TupleStream implements Expressible, Seria
   }
 
   public List<TupleStream> children() {
-    List<TupleStream> l = new ArrayList();
+    List<TupleStream> l = new ArrayList<>();
     l.add(stream);
     return l;
   }
 
-  public void setStreamContext(StreamContext streamContext) {
-    stream.setStreamContext(streamContext);
+  @Override
+  public StreamContext getStreamContext() {
+    return stream.getStreamContext();
   }
 
   public Tuple read() throws IOException {

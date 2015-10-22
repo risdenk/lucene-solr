@@ -48,26 +48,28 @@ public class StatsStream extends TupleStream implements Expressible  {
   private Metric[] metrics;
   private String zkHost;
   private Tuple tuple;
-  private Map<String, String> props;
+  private Map<String, Object> params;
   private String collection;
   private boolean done;
   private long count;
   private boolean doCount;
   protected transient SolrClientCache cache;
   protected transient CloudSolrClient cloudSolrClient;
+  private StreamContext context;
 
   public StatsStream(String zkHost,
                      String collection,
-                     Map<String, String> props,
+                     Map<String, Object> params,
                      Metric[] metrics) {
     init(zkHost, collection, props, metrics);
   }
   
   private void init(String zkHost, String collection, Map<String, String> props, Metric[] metrics) {
     this.zkHost  = zkHost;
-    this.props   = props;
+    this.params = params;
     this.metrics = metrics;
     this.collection = collection;
+    this.context = new StreamContext();
   }
   
   public StatsStream(StreamExpression expression, StreamFactory factory) throws IOException{   
@@ -148,12 +150,17 @@ public class StatsStream extends TupleStream implements Expressible  {
   }
 
   public void setStreamContext(StreamContext context) {
+    this.context = context;
     cache = context.getSolrClientCache();
   }
 
+  @Override
+  public StreamContext getStreamContext() {
+    return this.context;
+  }
+
   public List<TupleStream> children() {
-    List<TupleStream> l =  new ArrayList();
-    return l;
+    return new ArrayList<>();
   }
 
   public void open() throws IOException {
@@ -163,7 +170,7 @@ public class StatsStream extends TupleStream implements Expressible  {
       cloudSolrClient = new CloudSolrClient(zkHost);
     }
 
-    ModifiableSolrParams params = getParams(this.props);
+    ModifiableSolrParams params = getParams(this.params);
     addStats(params, metrics);
     params.add("stats", "true");
     params.add("rows", "0");
@@ -188,10 +195,9 @@ public class StatsStream extends TupleStream implements Expressible  {
       done = true;
       return tuple;
     } else {
-      Map fields = new HashMap();
+      Map<Object, Object> fields = new HashMap<>();
       fields.put("EOF", true);
-      Tuple tuple = new Tuple(fields);
-      return tuple;
+      return new Tuple(fields);
     }
   }
 
@@ -200,7 +206,7 @@ public class StatsStream extends TupleStream implements Expressible  {
   }
 
   private void addStats(ModifiableSolrParams params, Metric[] _metrics) {
-    Map<String, List<String>> m = new HashMap();
+    Map<String, List<String>> m = new HashMap<>();
     for(Metric metric : _metrics) {
       String metricId = metric.getIdentifier();
       if(metricId.contains("(")) {
@@ -211,20 +217,26 @@ public class StatsStream extends TupleStream implements Expressible  {
         List<String> stats = m.get(column);
 
         if(stats == null && !column.equals("*")) {
-          stats = new ArrayList();
+          stats = new ArrayList<>();
           m.put(column, stats);
         }
 
-        if(function.equals("min")) {
-          stats.add("min");
-        } else if(function.equals("max")) {
-          stats.add("max");
-        } else if(function.equals("sum")) {
-          stats.add("sum");
-        } else if(function.equals("avg")) {
-          stats.add("mean");
-        } else if(function.equals("count")) {
-          this.doCount = true;
+        switch (function) {
+          case "min":
+            stats.add("min");
+            break;
+          case "max":
+            stats.add("max");
+            break;
+          case "sum":
+            stats.add("sum");
+            break;
+          case "avg":
+            stats.add("mean");
+            break;
+          case "count":
+            this.doCount = true;
+            break;
         }
       }
     }
@@ -243,10 +255,10 @@ public class StatsStream extends TupleStream implements Expressible  {
     }
   }
 
-  private ModifiableSolrParams getParams(Map<String, String> props) {
+  private ModifiableSolrParams getParams(Map<String, Object> props) {
     ModifiableSolrParams params = new ModifiableSolrParams();
     for(String key : props.keySet()) {
-      String value = props.get(key);
+      String value = String.valueOf(props.get(key));
       params.add(key, value);
     }
     return params;
@@ -254,7 +266,7 @@ public class StatsStream extends TupleStream implements Expressible  {
 
   private Tuple getTuple(NamedList response) {
 
-    Map map = new HashMap();
+    Map<Object, Object> map = new HashMap<>();
 
     if(doCount) {
       SolrDocumentList solrDocumentList = (SolrDocumentList) response.get("response");
@@ -273,15 +285,14 @@ public class StatsStream extends TupleStream implements Expressible  {
       }
     }
 
-    Tuple tuple = new Tuple(map);
-    return tuple;
+    return new Tuple(map);
   }
 
   public int getCost() {
     return 0;
   }
 
-  private void addStat(Map map, String field, String stat, Object val) {
+  private void addStat(Map<Object, Object> map, String field, String stat, Object val) {
     if(stat.equals("mean")) {
       map.put("avg("+field+")", val);
     } else {

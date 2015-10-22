@@ -85,35 +85,34 @@ public class UniqueStream extends TupleStream implements Expressible {
   }
 
   @Override
-  public StreamExpression toExpression(StreamFactory factory) throws IOException {    
+  public StreamExpression toExpression(StreamFactory factory) throws IOException {
     // function name
     StreamExpression expression = new StreamExpression(factory.getFunctionName(this.getClass()));
-    
+
     // streams
-    if(stream instanceof Expressible){
-      expression.addParameter(((Expressible)stream).toExpression(factory));
-    }
-    else{
+    if (stream instanceof Expressible) {
+      expression.addParameter(((Expressible) stream).toExpression(factory));
+    } else {
       throw new IOException("This UniqueStream contains a non-expressible TupleStream - it cannot be converted to an expression");
     }
-    
+
     // over
-    if(eq instanceof Expressible){
-      expression.addParameter(new StreamExpressionNamedParameter("over",((Expressible)eq).toExpression(factory)));
-    }
-    else{
+    if (eq instanceof Expressible) {
+      expression.addParameter(new StreamExpressionNamedParameter("over", ((Expressible) eq).toExpression(factory)));
+    } else {
       throw new IOException("This UniqueStream contains a non-expressible equalitor - it cannot be converted to an expression");
     }
-    
-    return expression;   
+
+    return expression;
   }
-    
-  public void setStreamContext(StreamContext context) {
-    this.stream.setStreamContext(context);
+
+  @Override
+  public StreamContext getStreamContext() {
+    return this.stream.getStreamContext();
   }
 
   public List<TupleStream> children() {
-    List<TupleStream> l =  new ArrayList<TupleStream>();
+    List<TupleStream> l = new ArrayList<>();
     l.add(stream);
     return l;
   }

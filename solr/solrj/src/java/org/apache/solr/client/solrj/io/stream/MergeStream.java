@@ -111,12 +111,6 @@ public class MergeStream extends TupleStream implements Expressible {
     return expression;   
   }
 
-  public void setStreamContext(StreamContext context) {
-    for(PushBackStream stream : streams){
-      stream.setStreamContext(context);
-    }
-  }
-
   public List<TupleStream> children() {
     List<TupleStream> l =  new ArrayList();
     for(PushBackStream stream : streams){

@@ -133,13 +133,14 @@ public class ReducerStream extends TupleStream implements Expressible {
     
     return expression;   
   }
-  
-  public void setStreamContext(StreamContext context) {
-    this.stream.setStreamContext(context);
+
+  @Override
+  public StreamContext getStreamContext() {
+    return this.stream.getStreamContext();
   }
 
   public List<TupleStream> children() {
-    List<TupleStream> l =  new ArrayList();
+    List<TupleStream> l =  new ArrayList<>();
     l.add(stream);
     return l;
   }
@@ -154,15 +155,15 @@ public class ReducerStream extends TupleStream implements Expressible {
 
   public Tuple read() throws IOException {
 
-    List<Map> maps = new ArrayList();
+    List<Map<Object, Object>> maps = new ArrayList<>();
     while(true) {
       Tuple t = stream.read();
 
       if(t.EOF) {
        if(maps.size() > 0) {
          stream.pushBack(t);
-         Map map1 = maps.get(0);
-         Map map2 = new HashMap();
+         Map<Object, Object> map1 = maps.get(0);
+         Map<Object, Object> map2 = new HashMap<>();
          map2.putAll(map1);
          Tuple groupHead = new Tuple(map2);
          groupHead.setMaps(maps);

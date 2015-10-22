@@ -41,9 +41,9 @@ public class Tuple implements Cloneable {
   public boolean EOF;
   public boolean EXCEPTION;
 
-  public Map fields = new HashMap();
+  public Map<Object, Object> fields = new HashMap<>();
 
-  public Tuple(Map fields) {
+  public Tuple(Map<Object, Object> fields) {
     if(fields.containsKey("EOF")) {
       EOF = true;
     }
@@ -115,7 +115,7 @@ public class Tuple implements Cloneable {
     return (List<Double>)this.fields.get(key);
   }
 
-  public Map getMap() {
+  public Map<Object, Object> getMap() {
     return this.fields;
   }
 
@@ -123,7 +123,7 @@ public class Tuple implements Cloneable {
     return (List<Map>)this.fields.get("_MAPS_");
   }
 
-  public void setMaps(List<Map> maps) {
+  public void setMaps(List<Map<Object, Object>> maps) {
     this.fields.put("_MAPS_", maps);
   }
 
@@ -136,10 +136,9 @@ public class Tuple implements Cloneable {
   }
 
   public Tuple clone() {
-    HashMap m = new HashMap();
+    Map<Object, Object> m = new HashMap<>();
     m.putAll(fields);
-    Tuple clone = new Tuple(m);
-    return clone;
+    return new Tuple(m);
   }
   
   public void merge(Tuple other){

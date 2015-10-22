@@ -53,7 +53,7 @@ public class ExceptionStream extends TupleStream {
   public Tuple read() {
     if(openException != null) {
       //There was an exception during the open.
-      Map fields = new HashMap();
+      Map<Object, Object> fields = new HashMap<>();
       fields.put("EXCEPTION", openException.getMessage());
       fields.put("EOF", true);
       SolrException.log(log, openException);
@@ -63,7 +63,7 @@ public class ExceptionStream extends TupleStream {
     try {
       return stream.read();
     } catch (Exception e) {
-      Map fields = new HashMap();
+      Map<Object, Object> fields = new HashMap<>();
       fields.put("EXCEPTION", e.getMessage());
       fields.put("EOF", true);
       SolrException.log(log, e);
@@ -79,7 +79,8 @@ public class ExceptionStream extends TupleStream {
     stream.close();
   }
 
-  public void setStreamContext(StreamContext context) {
-    this.stream.setStreamContext(context);
+  @Override
+  public StreamContext getStreamContext() {
+    return this.stream.getStreamContext();
   }
 }

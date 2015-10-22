@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Iterator;
 
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.io.SolrClientCache;
@@ -39,7 +38,7 @@ public class SolrStream extends TupleStream {
   private static final long serialVersionUID = 1;
 
   private String baseUrl;
-  private Map params;
+  private Map<String, Object> params;
   private int numWorkers;
   private int workerID;
   private boolean trace;
@@ -47,10 +46,12 @@ public class SolrStream extends TupleStream {
   private transient JSONTupleStream jsonTupleStream;
   private transient HttpSolrClient client;
   private transient SolrClientCache cache;
+  private StreamContext context;
 
-  public SolrStream(String baseUrl, Map params) {
+  public SolrStream(String baseUrl, Map<String, Object> params) {
     this.baseUrl = baseUrl;
     this.params = params;
+    this.context = new StreamContext();
   }
 
   public void setFieldMappings(Map<String, String> fieldMappings) {
@@ -58,7 +59,7 @@ public class SolrStream extends TupleStream {
   }
 
   public List<TupleStream> children() {
-    return new ArrayList();
+    return new ArrayList<>();
   }
 
   public String getBaseUrl() {
@@ -66,9 +67,15 @@ public class SolrStream extends TupleStream {
   }
 
   public void setStreamContext(StreamContext context) {
+    this.context = context;
     this.numWorkers = context.numWorkers;
     this.workerID = context.workerID;
     this.cache = context.getSolrClientCache();
+  }
+
+  @Override
+  public StreamContext getStreamContext() {
+    return this.context;
   }
 
   /**
@@ -85,6 +92,9 @@ public class SolrStream extends TupleStream {
 
     try {
       jsonTupleStream = JSONTupleStream.create(client, loadParams(params));
+
+      // Fill StreamContext entries with entries from JSON TupleStream
+      this.context.getEntries().putAll(jsonTupleStream.getStreamContext().getEntries());
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -98,7 +108,7 @@ public class SolrStream extends TupleStream {
     this.trace = trace;
   }
 
-  private SolrParams loadParams(Map params) throws IOException {
+  private SolrParams loadParams(Map<String, Object> params) throws IOException {
     ModifiableSolrParams solrParams = new ModifiableSolrParams();
     if(params.containsKey("partitionKeys")) {
       if(!params.get("partitionKeys").equals("none")) {
@@ -111,22 +121,15 @@ public class SolrStream extends TupleStream {
       }
     }
 
-    Iterator<Map.Entry> it = params.entrySet().iterator();
-    while(it.hasNext()) {
-      Map.Entry entry = it.next();
-      solrParams.add((String)entry.getKey(), entry.getValue().toString());
+    for (Map.Entry<String, Object> entry : params.entrySet()) {
+      solrParams.add(entry.getKey(), String.valueOf(entry.getValue()));
     }
 
     return solrParams;
   }
 
   private String getPartitionFilter() {
-    StringBuilder buf = new StringBuilder("{!hash workers=");
-    buf.append(this.numWorkers);
-    buf.append(" worker=");
-    buf.append(this.workerID);
-    buf.append("}");
-    return buf.toString();
+    return "{!hash workers=" + this.numWorkers + " worker=" + this.workerID + "}";
   }
 
   /**
@@ -150,19 +153,18 @@ public class SolrStream extends TupleStream {
 
   public Tuple read() throws IOException {
     try {
-      Map fields = jsonTupleStream.next();
+      Map<Object, Object> fields = jsonTupleStream.next();
 
       if (fields == null) {
         //Return the EOF tuple.
-        Map m = new HashMap();
+        Map<Object, Object> m = new HashMap<>();
         m.put("EOF", true);
         return new Tuple(m);
       } else {
 
         String msg = (String) fields.get("EXCEPTION");
         if (msg != null) {
-          HandledException ioException = new HandledException(msg);
-          throw ioException;
+          throw new HandledException(msg);
         }
 
         if (trace) {
@@ -193,11 +195,9 @@ public class SolrStream extends TupleStream {
     return null;
   }
 
-  private Map mapFields(Map fields, Map<String,String> mappings) {
+  private Map<Object, Object> mapFields(Map<Object, Object> fields, Map<String,String> mappings) {
 
-    Iterator<Map.Entry<String,String>> it = mappings.entrySet().iterator();
-    while(it.hasNext()) {
-      Map.Entry<String,String> entry = it.next();
+    for (Map.Entry<String, String> entry : mappings.entrySet()) {
       String mapFrom = entry.getKey();
       String mapTo = entry.getValue();
       Object o = fields.get(mapFrom);

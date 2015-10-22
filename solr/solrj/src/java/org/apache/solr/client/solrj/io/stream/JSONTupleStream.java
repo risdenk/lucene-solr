@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -42,14 +43,38 @@ import org.noggit.ObjectBuilder;
 */
 
 public class JSONTupleStream {
+  private StreamContext streamContext = new StreamContext();
   private List<String> path;  // future... for more general stream handling
   private Reader reader;
   private JSONParser parser;
   private boolean atDocs;
 
-  public JSONTupleStream(Reader reader) {
+  public JSONTupleStream(Reader reader) throws IOException {
     this.reader = reader;
     this.parser = new JSONParser(reader);
+    init();
+  }
+
+  private void init() throws IOException {
+    List<String> keys = new ArrayList<>();
+    keys.add("context");
+    keys.add("docs");
+    String key = advanceToMapKeys(keys, true);
+    if(key != null) {
+      if(key.equals("context")) {
+        expect(JSONParser.OBJECT_START);
+        Map<Object, Object> entries = this.streamContext.getEntries();
+        Map<Object, Object> newEntries = (Map<Object, Object>) ObjectBuilder.getVal(parser);
+        entries.putAll(newEntries);
+      } else if(key.equals("docs")) {
+        atDocs = true;
+        expect(JSONParser.ARRAY_START);
+      }
+    }
+  }
+
+  public StreamContext getStreamContext() {
+    return this.streamContext;
   }
 
   // temporary...
@@ -70,9 +95,8 @@ public class JSONTupleStream {
     return new JSONTupleStream(reader);
   }
 
-
   /** returns the next Tuple or null */
-  public Map<String,Object> next() throws IOException {
+  public Map<Object, Object> next() throws IOException {
     if (!atDocs) {
       boolean found = advanceToDocs();
       atDocs = true;
@@ -85,13 +109,12 @@ public class JSONTupleStream {
     Object o = ObjectBuilder.getVal(parser);
     // right now, getVal will leave the last event read as OBJECT_END
 
-    return (Map<String,Object>)o;
+    return (Map<Object,Object>)o;
   }
 
   public void close() throws IOException {
     reader.close();
   }
-
 
   private void expect(int parserEventType) throws IOException {
     int event = parser.nextEvent();
@@ -100,9 +123,34 @@ public class JSONTupleStream {
     }
   }
 
-  private void expect(String mapKey) {
-
-
+  private String advanceToMapKeys(List<String> keys, boolean deepSearch) throws IOException {
+    for (;;) {
+      int event = parser.nextEvent();
+      switch (event) {
+        case JSONParser.STRING:
+          if (keys != null) {
+            String val = parser.getString();
+            if (keys.contains(val)) {
+              return val;
+            } else if("error".equals(val)) {
+              handleError();
+            }
+          }
+          break;
+        case JSONParser.OBJECT_END:
+          return null;
+        case JSONParser.OBJECT_START:
+          if (deepSearch) {
+            String found = advanceToMapKeys(keys, true);
+            if (found != null) {
+              return found;
+            }
+          } else {
+            advanceToMapKey(null, false);
+          }
+          break;
+      }
+    }
   }
 
   private boolean advanceToMapKey(String key, boolean deepSearch) throws IOException {
@@ -174,14 +222,11 @@ public class JSONTupleStream {
     }
   }
 
-
   private boolean advanceToDocs() throws IOException {
-    expect(JSONParser.OBJECT_START);
     boolean found = advanceToMapKey("docs", true);
-    expect(JSONParser.ARRAY_START);
+    if(found) {
+      expect(JSONParser.ARRAY_START);
+    }
     return found;
   }
-
-
-
 }

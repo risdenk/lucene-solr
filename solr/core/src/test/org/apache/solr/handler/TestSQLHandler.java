@@ -34,7 +34,6 @@ import org.apache.solr.common.params.CommonParams;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestSQLHandler extends AbstractFullDistribZkTestBase {
@@ -47,11 +46,6 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
   public TestSQLHandler() {
     sliceCount = 2;
   }
-
-  //@BeforeClass
-  //public static void beforeSuperClass() {
-    //AbstractZkTestCase.SOLRHOME = new File(SOLR_HOME());
- // }
 
   @AfterClass
   public static void afterSuperClass() {
@@ -108,7 +102,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     String sql = "select a from b where c = 'd'";
     Statement statement = parser.createStatement(sql);
     SQLHandler.SQLVisitor sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
 
     assert(sqlVistor.query.equals("(c:\"d\")"));
 
@@ -117,7 +111,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where (c = 'd')";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
 
     assert(sqlVistor.query.equals("(c:\"d\")"));
 
@@ -127,7 +121,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where ('CcC' = 'D')";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
     assert(sqlVistor.query.equals("(CcC:\"D\")"));
 
     //Phrase
@@ -135,7 +129,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where (c = 'd d')";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
 
     assert(sqlVistor.query.equals("(c:\"d d\")"));
 
@@ -144,7 +138,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where ((c = 'd') AND (l = 'z'))";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
 
     assert(sqlVistor.query.equals("((c:\"d\") AND (l:\"z\"))"));
 
@@ -154,7 +148,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where ((c = 'd') OR (l = 'z'))";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
 
     assert(sqlVistor.query.equals("((c:\"d\") OR (l:\"z\"))"));
 
@@ -164,7 +158,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where ((c = 'd') AND NOT (l = 'z'))";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
 
     assert(sqlVistor.query.equals("((c:\"d\") AND -(l:\"z\"))"));
 
@@ -173,7 +167,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where ((c = 'd') OR ((l = 'z') AND (m = 'j')))";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
 
     assert(sqlVistor.query.equals("((c:\"d\") OR ((l:\"z\") AND (m:\"j\")))"));
 
@@ -182,7 +176,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where ((c = 'd') OR ((l = 'z') AND NOT (m = 'j')))";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
 
     assert(sqlVistor.query.equals("((c:\"d\") OR ((l:\"z\") AND -(m:\"j\")))"));
 
@@ -192,7 +186,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where ((c = '[0 TO 100]') OR ((l = '(z)') AND (m = 'j')))";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
 
     assert(sqlVistor.query.equals("((c:[0 TO 100]) OR ((l:(z)) AND (m:\"j\")))"));
 
@@ -201,7 +195,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where ((c = '[0 TO 100]') OR ((l = '(z*)') AND (m = 'j')))";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
     assert(sqlVistor.query.equals("((c:[0 TO 100]) OR ((l:(z*)) AND (m:\"j\")))"));
 
     // Complex Lucene/Solr Query
@@ -209,7 +203,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     sql = "select a from b where (('c' = '[0 TO 100]') OR ((l = '(z*)') AND ('M' = '(j OR (k NOT s))')))";
     statement = parser.createStatement(sql);
     sqlVistor = new SQLHandler.SQLVisitor(new StringBuilder());
-    sqlVistor.process(statement, new Integer(0));
+    sqlVistor.process(statement, 0);
     assert(sqlVistor.query.equals("((c:[0 TO 100]) OR ((l:(z*)) AND (M:(j OR (k NOT s)))))"));
   }
 
@@ -231,7 +225,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexDoc(sdoc("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50"));
       indexDoc(sdoc("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60"));
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select 'id', field_i, str_s from collection1 where 'text'='XXXX' order by field_i desc");
 
@@ -240,7 +234,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
       assert(tuples.size() == 8);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.getLong("id") == 8);
@@ -282,7 +276,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getLong("field_i") == 7);
       assert(tuple.get("str_s").equals("a"));
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select id, field_i, str_s from collection1 where text='XXXX' order by field_i desc limit 1");
 
@@ -296,7 +290,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getLong("field_i") == 60);
       assert(tuple.get("str_s").equals("c"));
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select id, field_i, str_s from collection1 where text='XXXX' AND id='(1 2 3)' order by field_i desc");
 
@@ -344,7 +338,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexDoc(sdoc("id", "7", "Text_t", "XXXX XXXX", "Str_s", "c", "Field_i", "50"));
       indexDoc(sdoc("id", "8", "Text_t", "XXXX XXXX", "Str_s", "c", "Field_i", "60"));
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select id, Field_i, Str_s from Collection1 where Text_t='XXXX' order by Field_i desc");
 
@@ -353,7 +347,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
       assert(tuples.size() == 8);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.getLong("id") == 8);
@@ -395,7 +389,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getLong("Field_i") == 7);
       assert(tuple.get("Str_s").equals("a"));
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select Str_s, sum(Field_i) from Collection1 where 'id'='(1 8)' group by Str_s having (sum(Field_i) = 7 OR 'sum(Field_i)' = 60) order by 'sum(Field_i)' desc");
 
@@ -412,7 +406,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.get("Str_s").equals("a"));
       assert(tuple.getDouble("sum(Field_i)") == 7);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select Str_s, sum(Field_i) from Collection1 where 'id'='(1 8)' group by 'Str_s' having (sum(Field_i) = 7 OR 'sum(Field_i)' = 60) order by 'sum(Field_i)' desc");
 
@@ -454,7 +448,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexDoc(sdoc("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60"));
       commit();
 
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select id, field_i, str_s from collection1 where text='XXXX' order by field_iff desc");
 
@@ -465,7 +459,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //A parse exception detected before being sent to the search engine
       assert(tuple.getException().contains("Fields in the sort spec must be included in the field list"));
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select id, field_iff, str_s from collection1 where text='XXXX' order by field_iff desc");
 
@@ -476,7 +470,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //An exception not detected by the parser thrown from the /select handler
       assert(tuple.getException().contains("sort param field can't be found:"));
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select str_s, count(*), sum(field_iff), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having ((sum(field_iff) = 19) AND (min(field_i) = 8))");
 
@@ -487,7 +481,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //An exception not detected by the parser thrown from the /export handler
       assert(tuple.getException().contains("undefined field:"));
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select str_s, count(*), blah(field_iff), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having ((sum(field_iff) = 19) AND (min(field_i) = 8))");
 
@@ -498,7 +492,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //An exception not detected by the parser thrown from the /export handler
       assert(tuple.getException().contains("Invalid function: blah"));
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select str_s from collection1 where text='XXXX' group by str_s");
 
@@ -531,7 +525,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select str_s, 'count(*)', sum('field_i'), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by 'str_s' order by 'sum(field_i)' asc limit 2");
 
@@ -541,7 +535,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //Only two results because of the limit.
       assert(tuples.size() == 2);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.get("str_s").equals("b"));
@@ -559,7 +553,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("max(field_i)") == 20);
       assert(tuple.getDouble("avg(field_i)") == 13.5D);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where (text='XXXX' AND NOT text='XXXX XXX') group by str_s order by str_s desc");
 
@@ -596,7 +590,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("avg(field_i)") == 13.5D);
 
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having sum(field_i) = 19");
 
@@ -613,7 +607,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("max(field_i)") == 11);
       assert(tuple.getDouble("avg(field_i)") == 9.5D);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having ((sum(field_i) = 19) AND (min(field_i) = 8))");
 
@@ -631,7 +625,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("max(field_i)") == 11);
       assert(tuple.getDouble("avg(field_i)") == 9.5D);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having ((sum(field_i) = 19) AND (min(field_i) = 100))");
 
@@ -665,7 +659,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select distinct 'str_s', 'field_i' from collection1 order by 'str_s' asc, 'field_i' asc");
@@ -675,7 +669,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
       assert(tuples.size() == 6);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.get("str_s").equals("a"));
@@ -703,7 +697,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
 
       //reverse the sort
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select distinct str_s, field_i from collection1 order by str_s desc, field_i desc");
@@ -741,7 +735,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
 
       //test with limit
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select distinct str_s, field_i from collection1 order by str_s desc, field_i desc limit 2");
@@ -842,7 +836,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select distinct 'str_s', 'field_i' from collection1 order by 'str_s' asc, 'field_i' asc");
 
@@ -851,7 +845,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
       assert(tuples.size() == 6);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.get("str_s").equals("a"));
@@ -879,7 +873,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
 
       //reverse the sort
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select distinct str_s, field_i from collection1 order by str_s desc, field_i desc");
 
@@ -916,7 +910,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
 
       //test with limit
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select distinct str_s, field_i from collection1 order by str_s desc, field_i desc limit 2");
 
@@ -1012,7 +1006,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", "2");
       params.put("stmt", "select distinct str_s, field_i from collection1 order by str_s asc, field_i asc");
@@ -1022,7 +1016,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
       assert(tuples.size() == 6);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.get("str_s").equals("a"));
@@ -1050,7 +1044,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
 
       //reverse the sort
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", "2");
       params.put("stmt", "select distinct str_s, field_i from collection1 order by str_s desc, field_i desc");
@@ -1088,7 +1082,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
 
       //test with limit
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", "2");
       params.put("stmt", "select distinct str_s, field_i from collection1 order by str_s desc, field_i desc limit 2");
@@ -1188,7 +1182,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select 'str_s', 'count(*)', sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by 'str_s' order by 'sum(field_i)' asc limit 2");
@@ -1199,7 +1193,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //Only two results because of the limit.
       assert(tuples.size() == 2);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.get("str_s").equals("b"));
@@ -1217,7 +1211,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("max(field_i)") == 20);
       assert(tuple.getDouble("avg(field_i)") == 13.5D);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where (text='XXXX' AND NOT text='XXXX XXX') group by str_s order by str_s desc");
@@ -1255,7 +1249,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("avg(field_i)") == 13.5D);
 
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having 'sum(field_i)' = 19");
@@ -1273,7 +1267,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("max(field_i)") == 11);
       assert(tuple.getDouble("avg(field_i)") == 9.5D);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having (('sum(field_i)' = 19) AND (min(field_i) = 8))");
@@ -1292,7 +1286,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("max(field_i)") == 11);
       assert(tuple.getDouble("avg(field_i)") == 9.5D);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having ((sum(field_i) = 19) AND (min(field_i) = 100))");
@@ -1307,10 +1301,6 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       delete();
     }
   }
-
-
-
-
 
   private void testParallelBasicGrouping() throws Exception {
     try {
@@ -1330,7 +1320,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", "2");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s order by sum(field_i) asc limit 2");
@@ -1341,7 +1331,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //Only two results because of the limit.
       assert(tuples.size() == 2);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.get("str_s").equals("b"));
@@ -1360,7 +1350,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("avg(field_i)") == 13.5D);
 
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", "2");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s order by str_s desc");
@@ -1397,7 +1387,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("max(field_i)") == 20);
       assert(tuple.getDouble("avg(field_i)") == 13.5D);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", "2");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having sum(field_i) = 19");
@@ -1424,7 +1414,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("max(field_i)") == 11);
       assert(tuple.getDouble("avg(field_i)") == 9.5D);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", "2");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having ((sum(field_i) = 19) AND (min(field_i) = 8))");
@@ -1443,7 +1433,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("max(field_i)") == 11);
       assert(tuple.getDouble("avg(field_i)") == 9.5D);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", "2");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s having ((sum(field_i) = 19) AND (min(field_i) = 100))");
@@ -1457,7 +1447,6 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       delete();
     }
   }
-
 
   private void testAggregatesWithoutGrouping() throws Exception {
 
@@ -1480,12 +1469,11 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
     commit();
 
-    Map params = new HashMap();
+    Map<String, Object> params = new HashMap<>();
     params.put(CommonParams.QT, "/sql");
     params.put("stmt", "select count(*), sum(a_i), min(a_i), max(a_i), avg(a_i), sum(a_f), min(a_f), max(a_f), avg(a_f) from collection1");
 
     SolrStream solrStream = new SolrStream(jetty.url, params);
-
 
     List<Tuple> tuples = getTuples(solrStream);
 
@@ -1505,20 +1493,20 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     Double avgf = tuple.getDouble("avg(a_f)");
     Double count = tuple.getDouble("count(*)");
 
-    assertTrue(sumi.longValue() == 70);
-    assertTrue(sumf.doubleValue() == 55.0D);
-    assertTrue(mini.doubleValue() == 0.0D);
-    assertTrue(minf.doubleValue() == 1.0D);
-    assertTrue(maxi.doubleValue() == 14.0D);
-    assertTrue(maxf.doubleValue() == 10.0D);
-    assertTrue(avgi.doubleValue() == 7.0D);
-    assertTrue(avgf.doubleValue() == 5.5D);
-    assertTrue(count.doubleValue() == 10);
+    assertTrue(sumi == 70);
+    assertTrue(sumf == 55.0D);
+    assertTrue(mini == 0.0D);
+    assertTrue(minf == 1.0D);
+    assertTrue(maxi == 14.0D);
+    assertTrue(maxf == 10.0D);
+    assertTrue(avgi == 7.0D);
+    assertTrue(avgf == 5.5D);
+    assertTrue(count == 10);
 
 
     // Test where clause hits
 
-    params = new HashMap();
+    params = new HashMap<>();
     params.put(CommonParams.QT, "/sql");
     params.put("stmt", "select count(*), sum(a_i), min(a_i), max(a_i), avg(a_i), sum(a_f), min(a_f), max(a_f), avg(a_f) from collection1 where id = 2");
 
@@ -1540,20 +1528,20 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     avgf = tuple.getDouble("avg(a_f)");
     count = tuple.getDouble("count(*)");
 
-    assertTrue(sumi.longValue() == 2);
-    assertTrue(sumf.doubleValue() == 2.0D);
+    assertTrue(sumi == 2);
+    assertTrue(sumf == 2.0D);
     assertTrue(mini == 2);
     assertTrue(minf == 2);
     assertTrue(maxi == 2);
     assertTrue(maxf == 2);
-    assertTrue(avgi.doubleValue() == 2.0D);
-    assertTrue(avgf.doubleValue() == 2.0);
-    assertTrue(count.doubleValue() == 1);
+    assertTrue(avgi == 2.0D);
+    assertTrue(avgf == 2.0);
+    assertTrue(count == 1);
 
 
     // Test zero hits
 
-    params = new HashMap();
+    params = new HashMap<>();
     params.put(CommonParams.QT, "/sql");
     params.put("stmt", "select count(*), sum(a_i), min(a_i), max(a_i), avg(a_i), sum(a_f), min(a_f), max(a_f), avg(a_f) from collection1 where a_s = 'blah'");
 
@@ -1575,22 +1563,19 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     avgf = tuple.getDouble("avg(a_f)");
     count = tuple.getDouble("count(*)");
 
-    assertTrue(sumi.longValue() == 0);
-    assertTrue(sumf.doubleValue() == 0.0D);
+    assertTrue(sumi == 0);
+    assertTrue(sumf == 0.0D);
     assertTrue(mini == null);
     assertTrue(minf == null);
     assertTrue(maxi == null);
     assertTrue(maxf == null);
     assertTrue(Double.isNaN(avgi));
     assertTrue(Double.isNaN(avgf));
-    assertTrue(count.doubleValue() == 0);
+    assertTrue(count == 0);
 
     del("*:*");
     commit();
   }
-
-
-
 
   private void testTimeSeriesGrouping() throws Exception {
     try {
@@ -1611,7 +1596,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "8", "year_i", "2014", "month_i", "4",  "day_i", "2", "item_i", "1");
 
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select year_i, sum(item_i) from collection1 group by year_i order by year_i desc");
 
@@ -1621,7 +1606,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //Only two results because of the limit.
       assert(tuples.size() == 2);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.getLong("year_i") == 2015);
@@ -1639,8 +1624,6 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //Only two results because of the limit.
       assert(tuples.size() == 3);
 
-      tuple = null;
-
       tuple = tuples.get(0);
       assert(tuple.getLong("year_i") == 2015);
       assert(tuple.getLong("month_i") == 11);
@@ -1656,7 +1639,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getLong("month_i") == 4);
       assert(tuple.getDouble("sum(item_i)") == 7);
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select year_i, month_i, day_i, sum(item_i) from collection1 group by year_i, month_i, day_i order by year_i desc, month_i desc, day_i desc");
 
@@ -1665,8 +1648,6 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
       //Only two results because of the limit.
       assert(tuples.size() == 6);
-
-      tuple = null;
 
       tuple = tuples.get(0);
       assert(tuple.getLong("year_i") == 2015);
@@ -1729,7 +1710,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "8", "year_i", "2014", "month_i", "4", "day_i", "2", "item_i", "1");
 
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select year_i, sum(item_i) from collection1 group by year_i order by year_i desc");
@@ -1740,7 +1721,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //Only two results because of the limit.
       assert(tuples.size() == 2);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.getLong("year_i") == 2015);
@@ -1751,7 +1732,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("sum(item_i)") == 7);
 
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select year_i, month_i, sum(item_i) from collection1 group by year_i, month_i order by year_i desc, month_i desc");
@@ -1778,7 +1759,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("sum(item_i)") == 7);
 
 
-      params = new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select year_i, month_i, day_i, sum(item_i) from collection1 group by year_i, month_i, day_i order by year_i desc, month_i desc, day_i desc");
@@ -1848,7 +1829,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "8", "year_i", "2014", "month_i", "4", "day_i", "2", "item_i", "1");
 
       commit();
-      Map params = new HashMap();
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", 2);
       params.put("stmt", "select year_i, sum(item_i) from collection1 group by year_i order by year_i desc");
@@ -1859,7 +1840,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       //Only two results because of the limit.
       assert(tuples.size() == 2);
 
-      Tuple tuple = null;
+      Tuple tuple;
 
       tuple = tuples.get(0);
       assert(tuple.getLong("year_i") == 2015);
@@ -1869,7 +1850,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getLong("year_i") == 2014);
       assert(tuple.getDouble("sum(item_i)") == 7);
 
-      new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", 2);
       params.put("stmt", "select year_i, month_i, sum(item_i) from collection1 group by year_i, month_i order by year_i desc, month_i desc");
@@ -1879,8 +1860,6 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
       //Only two results because of the limit.
       assert(tuples.size() == 3);
-
-      tuple = null;
 
       tuple = tuples.get(0);
       assert(tuple.getLong("year_i") == 2015);
@@ -1898,7 +1877,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assert(tuple.getDouble("sum(item_i)") == 7);
 
 
-      new HashMap();
+      params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", 2);
       params.put("stmt", "select year_i, month_i, day_i, sum(item_i) from collection1 group by year_i, month_i, day_i order by year_i desc, month_i desc, day_i desc");
@@ -1908,8 +1887,6 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
       //Only two results because of the limit.
       assert(tuples.size() == 6);
-
-      tuple = null;
 
       tuple = tuples.get(0);
       assert(tuple.getLong("year_i") == 2015);
@@ -1954,7 +1931,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
   protected List<Tuple> getTuples(TupleStream tupleStream) throws IOException {
     tupleStream.open();
-    List<Tuple> tuples = new ArrayList();
+    List<Tuple> tuples = new ArrayList<>();
     for(;;) {
       Tuple t = tupleStream.read();
       if(t.EOF) {

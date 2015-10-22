@@ -48,23 +48,24 @@ public class FacetStream extends TupleStream  {
   private Metric[] metrics;
   private int limit;
   private FieldComparator[] sorts;
-  private List<Tuple> tuples = new ArrayList();
+  private List<Tuple> tuples = new ArrayList<>();
   private int index;
   private String zkHost;
-  private Map<String, String> props;
+  private Map<String, Object> params;
   private String collection;
   protected transient SolrClientCache cache;
   protected transient CloudSolrClient cloudSolrClient;
+  private StreamContext context = new StreamContext();
 
   public FacetStream(String zkHost,
                      String collection,
-                     Map<String, String> props,
+                     Map<String, Object> params,
                      Bucket[] buckets,
                      Metric[] metrics,
                      FieldComparator[] sorts,
                      int limit) throws IOException {
     this.zkHost  = zkHost;
-    this.props   = props;
+    this.params = params;
     this.buckets = buckets;
     this.metrics = metrics;
     this.limit   = limit;
@@ -82,12 +83,17 @@ public class FacetStream extends TupleStream  {
   }
 
   public void setStreamContext(StreamContext context) {
+    this.context = context;
     cache = context.getSolrClientCache();
   }
 
+  @Override
+  public StreamContext getStreamContext() {
+    return this.context;
+  }
+
   public List<TupleStream> children() {
-    List<TupleStream> l =  new ArrayList();
-    return l;
+    return new ArrayList<>();
   }
 
   public void open() throws IOException {
@@ -100,13 +106,13 @@ public class FacetStream extends TupleStream  {
     FieldComparator[] adjustedSorts = adjustSorts(buckets, sorts);
     String json = getJsonFacetString(buckets, metrics, adjustedSorts, limit);
 
-    ModifiableSolrParams params = getParams(this.props);
+    ModifiableSolrParams params = getParams(this.params);
     params.add("json.facet", json);
     params.add("rows", "0");
 
     QueryRequest request = new QueryRequest(params);
     try {
-      NamedList response = cloudSolrClient.request(request, collection);
+      NamedList<Object> response = cloudSolrClient.request(request, collection);
       getTuples(response, buckets, metrics);
       Collections.sort(tuples, getStreamSort());
     } catch (Exception e) {
@@ -126,17 +132,16 @@ public class FacetStream extends TupleStream  {
       ++index;
       return tuple;
     } else {
-      Map fields = new HashMap();
+      Map<Object, Object> fields = new HashMap<>();
       fields.put("EOF", true);
-      Tuple tuple = new Tuple(fields);
-      return tuple;
+      return new Tuple(fields);
     }
   }
 
-  private ModifiableSolrParams getParams(Map<String, String> props) {
+  private ModifiableSolrParams getParams(Map<String, Object> props) {
     ModifiableSolrParams params = new ModifiableSolrParams();
     for(String key : props.keySet()) {
-      String value = props.get(key);
+      String value = String.valueOf(props.get(key));
       params.add(key, value);
     }
     return params;
@@ -181,9 +186,11 @@ public class FacetStream extends TupleStream  {
     buf.append('"');
     buf.append(":{");
     buf.append("\"type\":\"terms\"");
-    buf.append(",\"field\":\""+_buckets[level].toString()+"\"");
-    buf.append(",\"limit\":"+_limit);
-    buf.append(",\"sort\":{\""+getFacetSort(_sorts[level].getLeftFieldName(), _metrics)+"\":\""+_sorts[level].getOrder()+"\"}");
+    buf.append(",\"field\":\"").append(_buckets[level].toString()).append("\"");
+    buf.append(",\"limit\":").append(_limit);
+    buf.append(",\"sort\":{\"");
+    buf.append(getFacetSort(_sorts[level].getLeftFieldName(), _metrics)).append("\":\"").append(_sorts[level].getOrder());
+    buf.append("\"}");
 
     buf.append(",\"facet\":{");
     int metricCount = 0;
@@ -193,7 +200,7 @@ public class FacetStream extends TupleStream  {
         if(metricCount>0) {
           buf.append(",");
         }
-        buf.append("\"facet_" + metricCount + "\":\"" +identifier+"\"");
+        buf.append("\"facet_").append(metricCount).append("\":\"").append(identifier).append("\"");
         ++metricCount;
       }
     }
@@ -224,11 +231,11 @@ public class FacetStream extends TupleStream  {
     return "index";
   }
 
-  private void getTuples(NamedList response,
+  private void getTuples(NamedList<Object> response,
                                 Bucket[] buckets,
                                 Metric[] metrics) {
 
-    Tuple tuple = new Tuple(new HashMap());
+    Tuple tuple = new Tuple(new HashMap<>());
     NamedList facets = (NamedList)response.get("facets");
     fillTuples(0,
                tuples,
@@ -249,29 +256,29 @@ public class FacetStream extends TupleStream  {
     String bucketName = _buckets[level].toString();
     NamedList nl = (NamedList)facets.get(bucketName);
     List allBuckets = (List)nl.get("buckets");
-    for(int b=0; b<allBuckets.size(); b++) {
-      NamedList bucket = (NamedList)allBuckets.get(b);
+    for (Object allBucket : allBuckets) {
+      NamedList bucket = (NamedList) allBucket;
       Object val = bucket.get("val");
       Tuple t = currentTuple.clone();
       t.put(bucketName, val);
-      int nextLevel = level+1;
-      if(nextLevel<_buckets.length) {
+      int nextLevel = level + 1;
+      if (nextLevel < _buckets.length) {
         fillTuples(nextLevel,
-                   tuples,
-                   t.clone(),
-                   bucket,
-                   _buckets,
-                   _metrics);
+            tuples,
+            t.clone(),
+            bucket,
+            _buckets,
+            _metrics);
       } else {
         int m = 0;
-        for(Metric metric : _metrics) {
+        for (Metric metric : _metrics) {
           String identifier = metric.getIdentifier();
-          if(!identifier.startsWith("count(")) {
-            double d = (double)bucket.get("facet_"+m);
+          if (!identifier.startsWith("count(")) {
+            double d = (double) bucket.get("facet_" + m);
             t.put(identifier, d);
             ++m;
           } else {
-            long l = (long)bucket.get("count");
+            long l = (long) bucket.get("count");
             t.put("count(*)", l);
           }
         }

@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.ArrayList;
 
 import org.apache.solr.client.solrj.io.Tuple;
-import org.apache.solr.client.solrj.io.comp.FieldComparator;
 import org.apache.solr.client.solrj.io.comp.HashKey;
 import org.apache.solr.client.solrj.io.comp.StreamComparator;
 import org.apache.solr.client.solrj.io.eq.FieldEqualitor;
@@ -146,12 +145,13 @@ public class RollupStream extends TupleStream implements Expressible {
     return expression;
   }
 
-  public void setStreamContext(StreamContext context) {
-    this.tupleStream.setStreamContext(context);
+  @Override
+  public StreamContext getStreamContext() {
+    return this.tupleStream.getStreamContext();
   }
 
   public List<TupleStream> children() {
-    List<TupleStream> l =  new ArrayList<TupleStream>();
+    List<TupleStream> l = new ArrayList<>();
     l.add(tupleStream);
     return l;
   }
@@ -175,7 +175,7 @@ public class RollupStream extends TupleStream implements Expressible {
             return tuple;
           }
 
-          Map map = new HashMap();
+          Map<Object, Object> map = new HashMap<>();
           for(Metric metric : currentMetrics) {
             map.put(metric.getIdentifier(), metric.getValue());
           }
@@ -206,7 +206,7 @@ public class RollupStream extends TupleStream implements Expressible {
       } else {
         Tuple t = null;
         if(currentMetrics != null) {
-          Map map = new HashMap();
+          Map<Object, Object> map = new HashMap<>();
           for(Metric metric : currentMetrics) {
             map.put(metric.getIdentifier(), metric.getValue());
           }

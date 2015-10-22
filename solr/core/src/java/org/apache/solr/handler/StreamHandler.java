@@ -84,8 +84,8 @@ public class StreamHandler extends RequestHandlerBase implements SolrCoreAware {
      *  </lst>
      * */
 
-    String defaultCollection = null;
-    String defaultZkhost     = null;
+    String defaultCollection;
+    String defaultZkhost;
     CoreContainer coreContainer = core.getCoreDescriptor().getCoreContainer();
 
     if(coreContainer.isZooKeeperAware()) {
@@ -145,7 +145,7 @@ public class StreamHandler extends RequestHandlerBase implements SolrCoreAware {
     params = adjustParams(params);
     req.setParams(params);
     boolean objectSerialize = params.getBool("objectSerialize", false);
-    TupleStream tupleStream = null;
+    TupleStream tupleStream;
 
     try {
       if (objectSerialize) {
@@ -168,11 +168,10 @@ public class StreamHandler extends RequestHandlerBase implements SolrCoreAware {
 
     int worker = params.getInt("workerID", 0);
     int numWorkers = params.getInt("numWorkers", 1);
-    StreamContext context = new StreamContext();
+    StreamContext context = tupleStream.getStreamContext();
     context.workerID = worker;
     context.numWorkers = numWorkers;
     context.setSolrClientCache(clientCache);
-    tupleStream.setStreamContext(context);
     rsp.add("result-set", new TimerStream(new ExceptionStream(tupleStream)));
   }
 
@@ -193,6 +192,7 @@ public class StreamHandler extends RequestHandlerBase implements SolrCoreAware {
 
 
   public static class DummyErrorStream extends TupleStream {
+    private StreamContext streamContext = new StreamContext();
     private Exception e;
 
     public DummyErrorStream(Exception e) {
@@ -209,6 +209,12 @@ public class StreamHandler extends RequestHandlerBase implements SolrCoreAware {
     }
 
     public void setStreamContext(StreamContext context) {
+      this.streamContext = context;
+    }
+
+    @Override
+    public StreamContext getStreamContext() {
+      return this.streamContext;
     }
 
     public List<TupleStream> children() {
@@ -217,7 +223,7 @@ public class StreamHandler extends RequestHandlerBase implements SolrCoreAware {
 
     public Tuple read() {
       String msg = e.getMessage();
-      Map m = new HashMap();
+      Map<Object, Object> m = new HashMap<>();
       m.put("EOF", true);
       m.put("EXCEPTION", msg);
       return new Tuple(m);
@@ -246,8 +252,9 @@ public class StreamHandler extends RequestHandlerBase implements SolrCoreAware {
       this.tupleStream.open();
     }
 
-    public void setStreamContext(StreamContext context) {
-      this.tupleStream.setStreamContext(context);
+    @Override
+    public StreamContext getStreamContext() {
+      return this.tupleStream.getStreamContext();
     }
 
     public List<TupleStream> children() {

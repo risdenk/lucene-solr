@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
 
-import com.facebook.presto.sql.ExpressionFormatter;
 import com.facebook.presto.sql.tree.*;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
@@ -76,7 +75,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
   private static List<String> remove;
 
   static {
-    remove = new ArrayList();
+    remove = new ArrayList<>();
     remove.add("count(*)");
   }
 
@@ -96,22 +95,22 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
     SolrParams params = req.getParams();
     params = adjustParams(params);
     req.setParams(params);
-    String sql = params.get("stmt");
+    String stmt = params.get("stmt");
     int numWorkers = params.getInt("numWorkers", 1);
     String workerCollection = params.get("workerCollection", defaultWorkerCollection);
-    String workerZkhost = params.get("workerZkhost",defaultZkhost);
+    String workerZkhost = params.get("workerZkhost", defaultZkhost);
     String mode = params.get("aggregationMode", "map_reduce");
-    StreamContext context = new StreamContext();
     try {
 
-      if(sql == null) {
-        throw new Exception("sql parameter cannot be null");
+      if(stmt == null) {
+        throw new Exception("stmt parameter cannot be null");
       }
 
-      TupleStream tupleStream = SQLTupleStreamParser.parse(sql, numWorkers, workerCollection, workerZkhost, AggregationMode.getMode(mode));
+      TupleStream tupleStream = SQLTupleStreamParser.parse(stmt, numWorkers, workerCollection, workerZkhost, AggregationMode.getMode(mode));
+      StreamContext context = tupleStream.getStreamContext();
       context.numWorkers = numWorkers;
       context.setSolrClientCache(StreamHandler.clientCache);
-      tupleStream.setStreamContext(context);
+      rsp.add("context", tupleStream.getStreamContext().getEntries());
       rsp.add("result-set", new StreamHandler.TimerStream(new ExceptionStream(tupleStream)));
     } catch(Exception e) {
       //Catch the SQL parsing and query transformation exceptions.
@@ -147,9 +146,9 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
       SQLVisitor sqlVistor = new SQLVisitor(new StringBuilder());
 
-      sqlVistor.process(statement, new Integer(0));
+      sqlVistor.process(statement, 0);
 
-      TupleStream sqlStream = null;
+      TupleStream sqlStream;
 
       if(sqlVistor.groupByQuery) {
         if(aggregationMode == AggregationMode.FACET) {
@@ -167,6 +166,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
         sqlStream = doSelect(sqlVistor);
       }
 
+      sqlStream.getStreamContext().getEntries().put("fields", sqlVistor.fields);
       return sqlStream;
     }
   }
@@ -176,7 +176,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
                                                      String workerCollection,
                                                      String workerZkHost) throws IOException {
 
-    Set<String> fieldSet = new HashSet();
+    Set<String> fieldSet = new HashSet<>();
     Bucket[] buckets = getBuckets(sqlVisitor.groupBy, fieldSet);
     Metric[] metrics = getMetrics(sqlVisitor.fields, fieldSet);
     if(metrics.length == 0) {
@@ -191,7 +191,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, String> params = new HashMap();
+    Map<String, Object> params = new HashMap<>();
 
     params.put(CommonParams.FL, fl);
     params.put(CommonParams.Q, sqlVisitor.query);
@@ -204,7 +204,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     params.put("sort", sort);
 
-    TupleStream tupleStream = null;
+    TupleStream tupleStream;
 
     CloudSolrStream cstream = new CloudSolrStream(zkHost, collection, params);
     tupleStream = new RollupStream(cstream, buckets, metrics);
@@ -262,7 +262,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
                                               String workerCollection,
                                               String workerZkHost) throws IOException {
 
-    Set<String> fieldSet = new HashSet();
+    Set<String> fieldSet = new HashSet<>();
     Bucket[] buckets = getBuckets(sqlVisitor.fields, fieldSet);
     Metric[] metrics = getMetrics(sqlVisitor.fields, fieldSet);
 
@@ -272,9 +272,9 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String fl = fields(fieldSet);
 
-    String sort = null;
-    StreamEqualitor ecomp = null;
-    StreamComparator comp = null;
+    String sort;
+    StreamEqualitor ecomp;
+    StreamComparator comp;
 
     if(sqlVisitor.sorts != null && sqlVisitor.sorts.size() > 0) {
       StreamComparator[] adjustedSorts = adjustSorts(sqlVisitor.sorts, buckets);
@@ -328,7 +328,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, String> params = new HashMap();
+    Map<String, Object> params = new HashMap<>();
 
     params.put(CommonParams.FL, fl);
     params.put(CommonParams.Q, sqlVisitor.query);
@@ -341,10 +341,8 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     params.put("sort", sort);
 
-    TupleStream tupleStream = null;
-
     CloudSolrStream cstream = new CloudSolrStream(zkHost, collection, params);
-    tupleStream = new UniqueStream(cstream, ecomp);
+    TupleStream tupleStream = new UniqueStream(cstream, ecomp);
 
     if(numWorkers > 1) {
       // Do the unique in parallel
@@ -369,9 +367,9 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
   }
 
   private static StreamComparator[] adjustSorts(List<SortItem> sorts, Bucket[] buckets) throws IOException {
-    List<FieldComparator> adjustedSorts = new ArrayList();
-    Set<String> bucketFields = new HashSet();
-    Set<String> sortFields = new HashSet();
+    List<FieldComparator> adjustedSorts = new ArrayList<>();
+    Set<String> bucketFields = new HashSet<>();
+    Set<String> sortFields = new HashSet<>();
 
     for(SortItem sortItem : sorts) {
 
@@ -406,7 +404,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
   private static TupleStream doSelectDistinctFacets(SQLVisitor sqlVisitor) throws IOException {
 
-    Set<String> fieldSet = new HashSet();
+    Set<String> fieldSet = new HashSet<>();
     Bucket[] buckets = getBuckets(sqlVisitor.fields, fieldSet);
     Metric[] metrics = getMetrics(sqlVisitor.fields, fieldSet);
 
@@ -418,13 +416,13 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, String> params = new HashMap();
+    Map<String, Object> params = new HashMap<>();
 
     params.put(CommonParams.Q, sqlVisitor.query);
 
     int limit = sqlVisitor.limit > 0 ? sqlVisitor.limit : 100;
 
-    FieldComparator[] sorts = null;
+    FieldComparator[] sorts;
 
     if(sqlVisitor.sorts == null) {
       sorts = new FieldComparator[buckets.length];
@@ -456,7 +454,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
   private static TupleStream doGroupByWithAggregatesFacets(SQLVisitor sqlVisitor) throws IOException {
 
-    Set<String> fieldSet = new HashSet();
+    Set<String> fieldSet = new HashSet<>();
     Bucket[] buckets = getBuckets(sqlVisitor.groupBy, fieldSet);
     Metric[] metrics = getMetrics(sqlVisitor.fields, fieldSet);
     if(metrics.length == 0) {
@@ -467,13 +465,13 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, String> params = new HashMap();
+    Map<String, Object> params = new HashMap<>();
 
     params.put(CommonParams.Q, sqlVisitor.query);
 
     int limit = sqlVisitor.limit > 0 ? sqlVisitor.limit : 100;
 
-    FieldComparator[] sorts = null;
+    FieldComparator[] sorts;
 
     if(sqlVisitor.sorts == null) {
       sorts = new FieldComparator[buckets.length];
@@ -506,7 +504,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
   private static TupleStream doSelect(SQLVisitor sqlVisitor) throws IOException {
     List<String> fields = sqlVisitor.fields;
-    Set<String> fieldSet = new HashSet();
+    Set<String> fieldSet = new HashSet<>();
     Metric[] metrics = getMetrics(fields, fieldSet);
     if(metrics.length > 0) {
       return doAggregates(sqlVisitor, metrics);
@@ -560,7 +558,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
         if (comma) {
           siBuf.append(",");
         }
-        siBuf.append(getSortField(sortItem) + " " + ascDesc(sortItem.getOrdering().toString()));
+        siBuf.append(getSortField(sortItem)).append(" ").append(ascDesc(sortItem.getOrdering().toString()));
       }
     } else {
       if(sqlVisitor.limit < 0) {
@@ -577,9 +575,9 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, String> params = new HashMap();
+    Map<String, Object> params = new HashMap<>();
 
-    params.put("fl", fl.toString());
+    params.put("fl", fl);
     params.put("q", sqlVisitor.query);
 
     if(siBuf.length() > 0) {
@@ -627,16 +625,14 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, String> params = new HashMap();
+    Map<String, Object> params = new HashMap<>();
 
     params.put(CommonParams.Q, sqlVisitor.query);
 
-    TupleStream tupleStream = new StatsStream(zkHost,
-                                              collection,
-                                              params,
-                                              metrics);
-
-    return tupleStream;
+    return new StatsStream(zkHost,
+        collection,
+        params,
+        metrics);
   }
 
   private static String bucketSort(Bucket[] buckets, String dir) {
@@ -737,7 +733,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
   }
 
   private static Metric[] getMetrics(List<String> fields, Set<String> fieldSet) throws IOException {
-    List<Metric> metrics = new ArrayList();
+    List<Metric> metrics = new ArrayList<>();
     for(String field : fields) {
       if(field.contains("(")) {
 
@@ -746,20 +742,26 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
         String function = parts[0];
         validateFunction(function);
         String column = parts[1];
-        if(function.equals("min")) {
-          metrics.add(new MinMetric(column));
-          fieldSet.add(column);
-        } else if(function.equals("max")) {
-          metrics.add(new MaxMetric(column));
-          fieldSet.add(column);
-        } else if(function.equals("sum")) {
-          metrics.add(new SumMetric(column));
-          fieldSet.add(column);
-        } else if(function.equals("avg")) {
-          metrics.add(new MeanMetric(column));
-          fieldSet.add(column);
-        } else if(function.equals("count")) {
-          metrics.add(new CountMetric());
+        switch (function) {
+          case "min":
+            metrics.add(new MinMetric(column));
+            fieldSet.add(column);
+            break;
+          case "max":
+            metrics.add(new MaxMetric(column));
+            fieldSet.add(column);
+            break;
+          case "sum":
+            metrics.add(new SumMetric(column));
+            fieldSet.add(column);
+            break;
+          case "avg":
+            metrics.add(new MeanMetric(column));
+            fieldSet.add(column);
+            break;
+          case "count":
+            metrics.add(new CountMetric());
+            break;
         }
       }
     }
@@ -775,7 +777,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
   }
 
   private static Bucket[] getBuckets(List<String> fields, Set<String> fieldSet) {
-    List<Bucket> buckets = new ArrayList();
+    List<Bucket> buckets = new ArrayList<>();
     for(String field : fields) {
       String f = stripQuotes(field);
       buckets.add(new Bucket(f));
@@ -869,7 +871,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
         value = '"'+value+'"';
       }
 
-      buf.append('(').append(field + ":" + value).append(')');
+      buf.append('(').append(field).append(":").append(value).append(')');
       return null;
     }
   }
@@ -877,8 +879,8 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
   static class SQLVisitor extends AstVisitor<Void, Integer> {
     private final StringBuilder builder;
     public String table;
-    public List<String> fields = new ArrayList();
-    public List<String> groupBy = new ArrayList();
+    public List<String> fields = new ArrayList<>();
+    public List<String> groupBy = new ArrayList<>();
     public List<SortItem> sorts;
     public String query ="*:*"; //If no query is specified pull all the records
     public int limit = -1;
@@ -901,7 +903,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
     protected Void visitQuery(Query node, Integer indent) {
       if(node.getWith().isPresent()) {
         With confidence = (With)node.getWith().get();
-        this.append(indent.intValue(), "WITH");
+        this.append(indent, "WITH");
         if(confidence.isRecursive()) {
         }
 
@@ -977,7 +979,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
     }
 
     protected Void visitSelect(Select node, Integer indent) {
-      this.append(indent.intValue(), "SELECT");
+      this.append(indent, "SELECT");
       if(node.isDistinct()) {
         this.isDistinct = true;
       }
@@ -990,7 +992,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
           this.process(item, indent);
         }
       } else {
-        this.process((Node) Iterables.getOnlyElement(node.getSelectItems()), indent);
+        this.process(Iterables.getOnlyElement(node.getSelectItems()), indent);
       }
 
       return null;
@@ -1034,9 +1036,6 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
       return null;
     }
-
-
-
 
     protected Void visitAllColumns(AllColumns node, Integer context) {
       return null;
@@ -1091,7 +1090,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
       FunctionCall functionCall = (FunctionCall)ex;
       List<String> parts = functionCall.getName().getOriginalParts();
       List<Expression> args = functionCall.getArguments();
-      String col = null;
+      String col;
 
       if(args.size() > 0 && args.get(0) instanceof QualifiedNameReference) {
         QualifiedNameReference ref = (QualifiedNameReference) args.get(0);
@@ -1121,7 +1120,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
       FunctionCall functionCall = (FunctionCall)ex;
       List<String> parts = functionCall.getName().getOriginalParts();
       List<Expression> args = functionCall.getArguments();
-      String col = null;
+      String col;
 
       if(args.size() > 0 && args.get(0) instanceof QualifiedNameReference) {
         QualifiedNameReference ref = (QualifiedNameReference) args.get(0);
@@ -1191,7 +1190,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
     }
 
     public List<TupleStream> children() {
-      List<TupleStream> children = new ArrayList();
+      List<TupleStream> children = new ArrayList<>();
       children.add(stream);
       return children;
     }
@@ -1200,24 +1199,24 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
       return stream.getStreamSort();
     }
 
-    public void setStreamContext(StreamContext context) {
-      stream.setStreamContext(context);
+    @Override
+    public StreamContext getStreamContext() {
+      return stream.getStreamContext();
     }
 
     public Tuple read() throws IOException {
       ++count;
       if(count > limit) {
-        Map fields = new HashMap();
+        Map<Object, Object> fields = new HashMap<>();
         fields.put("EOF", "true");
         return new Tuple(fields);
       }
 
-      Tuple tuple = stream.read();
-      return tuple;
+      return stream.read();
     }
   }
 
-  public static enum AggregationMode {
+  public enum AggregationMode {
 
     MAP_REDUCE,
     FACET;
@@ -1258,13 +1257,14 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
     }
 
     public List<TupleStream> children() {
-      List<TupleStream> children = new ArrayList();
+      List<TupleStream> children = new ArrayList<>();
       children.add(stream);
       return children;
     }
 
-    public void setStreamContext(StreamContext context) {
-      stream.setStreamContext(context);
+    @Override
+    public StreamContext getStreamContext() {
+      return stream.getStreamContext();
     }
 
     public Tuple read() throws IOException {

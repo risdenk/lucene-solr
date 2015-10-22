@@ -1,3 +1,5 @@
+package org.apache.solr.client.solrj.io.stream;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -15,41 +17,22 @@
  * limitations under the License.
  */
 
-package org.apache.solr.client.solrj.io.stream;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.solr.client.solrj.io.Tuple;
 import org.apache.solr.client.solrj.io.comp.StreamComparator;
-import org.apache.solr.client.solrj.io.stream.expr.Expressible;
-import org.apache.solr.client.solrj.io.stream.expr.StreamExpressionParameter;
-import org.apache.solr.client.solrj.io.stream.expr.StreamFactory;
 
-/**
- * A TupleStream that allows a single Tuple to be pushed back onto the stream after it's been read.
- * This is a useful class when building streams that maintain the order of Tuples between multiple
- * substreams.
- **/
-
-public class PushBackStream extends TupleStream {
+public class EditStream extends TupleStream {
 
   private static final long serialVersionUID = 1;
-
   private TupleStream stream;
-  private Tuple tuple;
+  private List<String> remove;
 
-  public PushBackStream(TupleStream stream) {
+  public EditStream(TupleStream stream, List<String> remove) {
     this.stream = stream;
-  }
-  
-  public StreamExpressionParameter toExpression(StreamFactory factory) throws IOException{
-    if(stream instanceof Expressible){
-      return ((Expressible)stream).toExpression(factory);
-    }
-    
-    throw new IOException("This PushBackStream contains a non-expressible TupleStream - it cannot be converted to an expression");
+    this.remove = remove;
   }
 
   @Override
@@ -58,7 +41,7 @@ public class PushBackStream extends TupleStream {
   }
 
   public List<TupleStream> children() {
-    List<TupleStream> l =  new ArrayList<>();
+    List<TupleStream> l = new ArrayList<>();
     l.add(stream);
     return l;
   }
@@ -71,26 +54,22 @@ public class PushBackStream extends TupleStream {
     stream.close();
   }
 
-  public void pushBack(Tuple tuple) {
-    this.tuple = tuple;
-  }
-
   public Tuple read() throws IOException {
-    if(tuple != null) {
-      Tuple t = tuple;
-      tuple = null;
-      return t;
+    Tuple tuple = stream.read();
+    if(tuple.EOF) {
+      return tuple;
     } else {
-      return stream.read();
+      for(String key : remove) {
+        tuple.remove(key);
+      }
+
+      return tuple;
     }
   }
-  
-  /** Return the stream sort - ie, the order in which records are returned
-   *  This returns the streamSort of the substream */
-  public StreamComparator getStreamSort(){
+
+  public StreamComparator getStreamSort() {
     return stream.getStreamSort();
   }
-
 
   public int getCost() {
     return 0;

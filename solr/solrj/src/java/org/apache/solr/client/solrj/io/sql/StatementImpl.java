@@ -52,6 +52,8 @@ class StatementImpl implements Statement {
   private SolrStream solrStream;
   private boolean closed;
 
+  private String lastSQL;
+
   StatementImpl(CloudSolrClient client, String collection, Properties properties, SolrClientCache sqlSolrClientCache) {
     this.client = client;
     this.collection = collection;
@@ -65,9 +67,8 @@ class StatementImpl implements Statement {
     try {
       closed = false;  // If closed reopen so Statement can be reused.
       this.solrStream = constructStream(sql);
-      StreamContext context = new StreamContext();
+      StreamContext context = this.solrStream.getStreamContext();
       context.setSolrClientCache(sqlSolrClientCache);
-      this.solrStream.setStreamContext(context);
       this.solrStream.open();
       return new ResultSetImpl(this.solrStream);
     } catch(Exception e) {
@@ -83,12 +84,10 @@ class StatementImpl implements Statement {
       Collection<Slice> slices = clusterState.getActiveSlices(this.collection);
 
       if(slices == null) {
-        throw new Exception("Collection not found:"+this.collection);
+        throw new Exception("Collection not found:" + this.collection);
       }
 
-      Map params = new HashMap();
-
-      List<Replica> shuffler = new ArrayList();
+      List<Replica> shuffler = new ArrayList<>();
       for(Slice slice : slices) {
         Collection<Replica> replicas = slice.getReplicas();
         for (Replica replica : replicas) {
@@ -98,15 +97,17 @@ class StatementImpl implements Statement {
 
       Collections.shuffle(shuffler, new Random());
 
+      Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", sql);
-      params.putAll(properties);
+      for(String propertyName : properties.stringPropertyNames()) {
+        params.put(propertyName, properties.getProperty(propertyName));
+      }
 
       Replica rep = shuffler.get(0);
       ZkCoreNodeProps zkProps = new ZkCoreNodeProps(rep);
       String url = zkProps.getCoreUrl();
       return new SolrStream(url, params);
-
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -119,7 +120,6 @@ class StatementImpl implements Statement {
 
   @Override
   public void close() throws SQLException {
-
     if(closed) {
       return;
     }
@@ -149,7 +149,7 @@ class StatementImpl implements Statement {
 
   @Override
   public void setMaxRows(int max) throws SQLException {
-    throw new UnsupportedOperationException();
+    //throw new UnsupportedOperationException();
   }
 
   @Override
@@ -174,12 +174,12 @@ class StatementImpl implements Statement {
 
   @Override
   public SQLWarning getWarnings() throws SQLException {
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   @Override
   public void clearWarnings() throws SQLException {
-    throw new UnsupportedOperationException();
+
   }
 
   @Override
@@ -189,17 +189,18 @@ class StatementImpl implements Statement {
 
   @Override
   public boolean execute(String sql) throws SQLException {
-    throw new UnsupportedOperationException();
+    this.lastSQL = sql;
+    return true;
   }
 
   @Override
   public ResultSet getResultSet() throws SQLException {
-    throw new UnsupportedOperationException();
+    return this.executeQuery(this.lastSQL);
   }
 
   @Override
   public int getUpdateCount() throws SQLException {
-    throw new UnsupportedOperationException();
+    return -1;
   }
 
   @Override

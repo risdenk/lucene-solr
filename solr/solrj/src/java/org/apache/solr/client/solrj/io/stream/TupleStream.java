@@ -21,14 +21,18 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.io.Writer;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.solr.client.solrj.io.Tuple;
 import org.apache.solr.client.solrj.io.comp.StreamComparator;
+import org.noggit.JSONUtil;
 
 
 public abstract class TupleStream implements Serializable {
 
   private static final long serialVersionUID = 1;
+
+  private static final StreamContext streamContext = new StreamContext();
 
   public TupleStream() {
 
@@ -42,7 +46,9 @@ public abstract class TupleStream implements Serializable {
     out.write("]}");
   }
 
-  public abstract void setStreamContext(StreamContext context);
+  public StreamContext getStreamContext() {
+    return streamContext;
+  }
 
   public abstract List<TupleStream> children();
 

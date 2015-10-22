@@ -113,7 +113,7 @@ class ConnectionImpl implements Connection {
 
   @Override
   public DatabaseMetaData getMetaData() throws SQLException {
-    throw new UnsupportedOperationException();
+    return new DatabaseMetaDataImpl(this.client, this.collection);
   }
 
   @Override
@@ -128,12 +128,14 @@ class ConnectionImpl implements Connection {
 
   @Override
   public void setCatalog(String catalog) throws SQLException {
-    throw new UnsupportedOperationException();
+    if(isClosed()) {
+      throw new SQLException("Connection closed");
+    }
   }
 
   @Override
   public String getCatalog() throws SQLException {
-    throw new UnsupportedOperationException();
+    return this.collection;
   }
 
   @Override
@@ -263,7 +265,7 @@ class ConnectionImpl implements Connection {
 
   @Override
   public boolean isValid(int timeout) throws SQLException {
-    throw new UnsupportedOperationException();
+    return true;
   }
 
   @Override
@@ -303,7 +305,7 @@ class ConnectionImpl implements Connection {
 
   @Override
   public String getSchema() throws SQLException {
-    throw new UnsupportedOperationException();
+    return this.collection;
   }
 
   @Override
