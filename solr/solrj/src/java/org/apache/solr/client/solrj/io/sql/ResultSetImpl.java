@@ -44,16 +44,29 @@ import org.apache.solr.client.solrj.io.stream.SolrStream;
 import org.apache.solr.client.solrj.io.Tuple;
 
 class ResultSetImpl implements ResultSet {
-
+  private final StatementImpl statement;
+  private final SolrStream solrStream;
   private final List<String> fields;
-  private SolrStream solrStream;
   private Tuple tuple;
   private boolean done;
   private boolean closed;
 
-  ResultSetImpl(SolrStream solrStream) {
-    this.solrStream = solrStream;
+  ResultSetImpl(StatementImpl statement) {
+    this.statement = statement;
+    this.solrStream = statement.getSolrStream();
     this.fields = (List<String>)solrStream.getStreamContext().getEntries().get("fields");
+  }
+
+  public SolrStream getSolrStream() {
+    return solrStream;
+  }
+
+  public List<String> getFields() {
+    return fields;
+  }
+
+  public Tuple getTuple() {
+    return tuple;
   }
 
   private String lookupColumnLabel(int columnIndex) throws SQLException {
@@ -280,7 +293,7 @@ class ResultSetImpl implements ResultSet {
 
   @Override
   public ResultSetMetaData getMetaData() throws SQLException {
-    return new ResultSetMetaDataImpl(this.solrStream, this.fields);
+    return new ResultSetMetaDataImpl(this);
   }
 
   @Override
@@ -654,7 +667,7 @@ class ResultSetImpl implements ResultSet {
 
   @Override
   public Statement getStatement() throws SQLException {
-    throw new UnsupportedOperationException();
+    return this.statement;
   }
 
   @Override

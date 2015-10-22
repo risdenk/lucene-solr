@@ -40,22 +40,37 @@ import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.io.SolrClientCache;
 
 class ConnectionImpl implements Connection {
-
-  private SolrClientCache sqlSolrClientCache = new SolrClientCache();
-  private CloudSolrClient client;
-  private String collection;
-  Properties props;
+  private final SolrClientCache solrClientCache = new SolrClientCache();
+  private final CloudSolrClient client;
+  private final String collection;
+  private final Properties properties;
   private boolean closed;
 
-  ConnectionImpl(String zkHost, String collection, Properties props) {
-    this.client = sqlSolrClientCache.getCloudSolrClient(zkHost);
+  ConnectionImpl(String zkHost, String collection, Properties properties) {
+    this.client = solrClientCache.getCloudSolrClient(zkHost);
     this.collection = collection;
-    this.props = props;
+    this.properties = properties;
+  }
+
+  public CloudSolrClient getClient() {
+    return client;
+  }
+
+  public String getCollection() {
+    return collection;
+  }
+
+  public Properties getProperties() {
+    return properties;
+  }
+
+  public SolrClientCache getSolrClientCache() {
+    return this.solrClientCache;
   }
 
   @Override
   public Statement createStatement() throws SQLException {
-    return new StatementImpl(client, this.collection, props, sqlSolrClientCache);
+    return new StatementImpl(this);
   }
 
   @Override
@@ -102,7 +117,7 @@ class ConnectionImpl implements Connection {
       return;
     }
     try {
-      this.sqlSolrClientCache.close();
+      this.solrClientCache.close();
       this.closed = true;
     } catch (Exception e) {
       throw new SQLException(e);
@@ -116,7 +131,7 @@ class ConnectionImpl implements Connection {
 
   @Override
   public DatabaseMetaData getMetaData() throws SQLException {
-    return new DatabaseMetaDataImpl(this.client, this.collection);
+    return new DatabaseMetaDataImpl(this);
   }
 
   @Override

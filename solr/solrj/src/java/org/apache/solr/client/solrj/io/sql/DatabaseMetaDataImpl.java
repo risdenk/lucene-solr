@@ -30,12 +30,10 @@ import java.util.Set;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 
 public class DatabaseMetaDataImpl implements DatabaseMetaData {
-  private CloudSolrClient client;
-  private String collection;
+  private final ConnectionImpl connection;
 
-  public DatabaseMetaDataImpl(CloudSolrClient client, String collection) {
-    this.client = client;
-    this.collection = collection;
+  public DatabaseMetaDataImpl(ConnectionImpl connection) {
+    this.connection = connection;
   }
 
   @Override
@@ -50,7 +48,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public String getURL() throws SQLException {
-    return "jdbc:solr://this.client.getZkHost()?collection=" + this.collection;
+    return "jdbc:solr://" + this.connection.getClient().getZkHost() + "?collection=" + this.connection.getCollection();
   }
 
   @Override
@@ -651,7 +649,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public ResultSet getSchemas() throws SQLException {
-    Set<String> collections = this.client.getZkStateReader().getClusterState().getCollections();
+    Set<String> collections = this.connection.getClient().getZkStateReader().getClusterState().getCollections();
     LinkedList<LinkedList<Object>> rows = new LinkedList<>();
     for(String collection : collections) {
       LinkedList<Object> row = new LinkedList<>();
@@ -812,7 +810,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public Connection getConnection() throws SQLException {
-    return null;
+    return this.connection;
   }
 
   @Override

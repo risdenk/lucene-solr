@@ -24,17 +24,15 @@ import java.util.List;
 import org.apache.solr.client.solrj.io.stream.SolrStream;
 
 public class ResultSetMetaDataImpl implements ResultSetMetaData {
-  private final SolrStream solrStream;
-  private final List<String> fields;
+  private final ResultSetImpl resultSet;
 
-  ResultSetMetaDataImpl(SolrStream solrStream, List<String> fields) {
-    this.solrStream = solrStream;
-    this.fields = fields;
+  ResultSetMetaDataImpl(ResultSetImpl resultSet) {
+    this.resultSet = resultSet;
   }
 
   @Override
   public int getColumnCount() throws SQLException {
-    return this.fields.size();
+    return this.resultSet.getFields().size();
   }
 
   @Override
@@ -79,8 +77,8 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
 
   @Override
   public String getColumnName(int column) throws SQLException {
-    if(column > 0 && column <= this.fields.size()) {
-      return this.fields.get(column - 1);
+    if(column > 0 && column <= this.resultSet.getFields().size()) {
+      return this.resultSet.getFields().get(column - 1);
     } else {
       throw new SQLException("Invalid column:" + column);
     }

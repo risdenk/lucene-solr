@@ -29,12 +29,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Properties;
 import java.util.Random;
 
 import org.apache.solr.client.solrj.io.stream.SolrStream;
-import org.apache.solr.client.solrj.io.SolrClientCache;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.io.stream.StreamContext;
 import org.apache.solr.common.cloud.ClusterState;
 import org.apache.solr.common.cloud.Replica;
@@ -45,20 +42,18 @@ import org.apache.solr.common.params.CommonParams;
 
 class StatementImpl implements Statement {
 
-  private CloudSolrClient client;
-  private SolrClientCache sqlSolrClientCache;
-  private String collection;
-  private Properties properties;
+  private final ConnectionImpl connection;
   private SolrStream solrStream;
   private boolean closed;
 
   private String lastSQL;
 
-  StatementImpl(CloudSolrClient client, String collection, Properties properties, SolrClientCache sqlSolrClientCache) {
-    this.client = client;
-    this.collection = collection;
-    this.properties = properties;
-    this.sqlSolrClientCache = sqlSolrClientCache;
+  StatementImpl(ConnectionImpl connection) {
+    this.connection = connection;
+  }
+
+  public SolrStream getSolrStream() {
+    return solrStream;
   }
 
   @Override
@@ -67,9 +62,9 @@ class StatementImpl implements Statement {
       closed = false;  // If closed reopen so Statement can be reused.
       this.solrStream = constructStream(sql);
       StreamContext context = this.solrStream.getStreamContext();
-      context.setSolrClientCache(sqlSolrClientCache);
+      context.setSolrClientCache(this.connection.getSolrClientCache());
       this.solrStream.open();
-      return new ResultSetImpl(this.solrStream);
+      return new ResultSetImpl(this);
     } catch(Exception e) {
       throw new SQLException(e);
     }
@@ -77,12 +72,12 @@ class StatementImpl implements Statement {
 
   protected SolrStream constructStream(String sql) throws IOException {
     try {
-      ZkStateReader zkStateReader = client.getZkStateReader();
+      ZkStateReader zkStateReader = this.connection.getClient().getZkStateReader();
       ClusterState clusterState = zkStateReader.getClusterState();
-      Collection<Slice> slices = clusterState.getActiveSlices(this.collection);
+      Collection<Slice> slices = clusterState.getActiveSlices(this.connection.getCollection());
 
       if(slices == null) {
-        throw new Exception("Collection not found:" + this.collection);
+        throw new Exception("Collection not found:" + this.connection.getCollection());
       }
 
       List<Replica> shuffler = new ArrayList<>();
@@ -98,8 +93,8 @@ class StatementImpl implements Statement {
       Map<String, Object> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", sql);
-      for(String propertyName : properties.stringPropertyNames()) {
-        params.put(propertyName, properties.getProperty(propertyName));
+      for(String propertyName : this.connection.getProperties().stringPropertyNames()) {
+        params.put(propertyName, this.connection.getProperties().getProperty(propertyName));
       }
 
       Replica rep = shuffler.get(0);

@@ -77,10 +77,12 @@ public class DriverImpl implements Driver {
   }
 
   public int getMajorVersion() {
-    return 1;
+    // TODO get from POM?
+    return 6;
   }
 
   public int getMinorVersion() {
+    // TODO get from POM?
     return 0;
   }
 
