@@ -106,19 +106,19 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
       try(Statement stmt = con.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i desc limit 2")) {
           assert (rs.next());
-          assert (rs.getLong(1) == 14);
+          assert (rs.getLong(2) == 14);
           assert (rs.getLong("a_i") == 14);
-          assert (rs.getString(2).equals("hello0"));
+          assert (rs.getString(3).equals("hello0"));
           assert (rs.getString("a_s").equals("hello0"));
-          assert (rs.getDouble(3) == 10);
+          assert (rs.getDouble(4) == 10);
           assert (rs.getDouble("a_f") == 10);
 
           assert (rs.next());
-          assert (rs.getLong(1) == 13);
+          assert (rs.getLong(2) == 13);
           assert (rs.getLong("a_i") == 13);
-          assert (rs.getString(2).equals("hello3"));
+          assert (rs.getString(3).equals("hello3"));
           assert (rs.getString("a_s").equals("hello3"));
-          assert (rs.getDouble(3) == 9);
+          assert (rs.getDouble(4) == 9);
           assert (rs.getDouble("a_f") == 9);
           assert (!rs.next());
         }
