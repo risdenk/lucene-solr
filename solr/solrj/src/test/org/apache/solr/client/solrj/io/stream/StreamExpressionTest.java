@@ -746,7 +746,7 @@ public class StreamExpressionTest extends AbstractFullDistribZkTestBase {
     commit();
 
     String zkHost = zkServer.getZkAddress();
-    StreamFactory streamFactory = new StreamFactory().withCollectionZkHost("collection1", zkServer.getZkAddress())
+    StreamFactory streamFactory = new StreamFactory().withCollectionZkHost("collection1", zkHost)
         .withFunctionName("search", CloudSolrStream.class)
         .withFunctionName("unique", UniqueStream.class)
         .withFunctionName("top", RankStream.class)
@@ -865,23 +865,20 @@ public class StreamExpressionTest extends AbstractFullDistribZkTestBase {
         .withFunctionName("parallel", ParallelStream.class);
 
     //Test ascending
-    ParallelStream pstream = (ParallelStream)streamFactory.constructStream("parallel(collection1, merge(search(collection1, q=\"id:(4 1 8 7 9)\", fl=\"id,a_s,a_i\", sort=\"a_i asc\", partitionKeys=\"a_i\"), search(collection1, q=\"id:(0 2 3 6)\", fl=\"id,a_s,a_i\", sort=\"a_i asc\", partitionKeys=\"a_i\"), on=\"a_i asc\"), workers=\"2\", zkHost=\""+zkHost+"\", sort=\"a_i asc\")");
+    try(ParallelStream pstream = (ParallelStream)streamFactory.constructStream("parallel(collection1, merge(search(collection1, q=\"id:(4 1 8 7 9)\", fl=\"id,a_s,a_i\", sort=\"a_i asc\", partitionKeys=\"a_i\"), search(collection1, q=\"id:(0 2 3 6)\", fl=\"id,a_s,a_i\", sort=\"a_i asc\", partitionKeys=\"a_i\"), on=\"a_i asc\"), workers=\"2\", zkHost=\""+zkHost+"\", sort=\"a_i asc\")")) {
+      List<Tuple> tuples = getTuples(pstream);
 
-    List<Tuple> tuples = getTuples(pstream);
-
-
-
-    assert(tuples.size() == 9);
-    assertOrder(tuples, 0,1,2,3,4,7,6,8,9);
+      assert(tuples.size() == 9);
+      assertOrder(tuples, 0,1,2,3,4,7,6,8,9);
+    }
 
     //Test descending
+    try(ParallelStream pstream = (ParallelStream)streamFactory.constructStream("parallel(collection1, merge(search(collection1, q=\"id:(4 1 8 9)\", fl=\"id,a_s,a_i\", sort=\"a_i desc\", partitionKeys=\"a_i\"), search(collection1, q=\"id:(0 2 3 6)\", fl=\"id,a_s,a_i\", sort=\"a_i desc\", partitionKeys=\"a_i\"), on=\"a_i desc\"), workers=\"2\", zkHost=\""+zkHost+"\", sort=\"a_i desc\")")) {
+      List<Tuple> tuples = getTuples(pstream);
 
-    pstream = (ParallelStream)streamFactory.constructStream("parallel(collection1, merge(search(collection1, q=\"id:(4 1 8 9)\", fl=\"id,a_s,a_i\", sort=\"a_i desc\", partitionKeys=\"a_i\"), search(collection1, q=\"id:(0 2 3 6)\", fl=\"id,a_s,a_i\", sort=\"a_i desc\", partitionKeys=\"a_i\"), on=\"a_i desc\"), workers=\"2\", zkHost=\""+zkHost+"\", sort=\"a_i desc\")");
-
-    tuples = getTuples(pstream);
-
-    assert(tuples.size() == 8);
-    assertOrder(tuples, 9,8,6,4,3,2,1,0);
+      assert(tuples.size() == 8);
+      assertOrder(tuples, 9,8,6,4,3,2,1,0);
+    }
 
     del("*:*");
     commit();

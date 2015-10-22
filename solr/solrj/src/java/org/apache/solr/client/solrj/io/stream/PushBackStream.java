@@ -41,7 +41,13 @@ public class PushBackStream extends TupleStream {
   private Tuple tuple;
 
   public PushBackStream(TupleStream stream) {
+    this(stream, new StreamContext());
+  }
+
+  public PushBackStream(TupleStream stream, StreamContext streamContext) {
     this.stream = stream;
+    this.stream.streamContext = streamContext;
+    this.streamContext = streamContext;
   }
   
   public StreamExpressionParameter toExpression(StreamFactory factory) throws IOException{
@@ -50,11 +56,6 @@ public class PushBackStream extends TupleStream {
     }
     
     throw new IOException("This PushBackStream contains a non-expressible TupleStream - it cannot be converted to an expression");
-  }
-
-  @Override
-  public StreamContext getStreamContext() {
-    return this.stream.getStreamContext();
   }
 
   public List<TupleStream> children() {

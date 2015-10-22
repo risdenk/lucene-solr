@@ -24,34 +24,33 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.client.solrj.io.SolrClientCache;
 import org.apache.solr.client.solrj.io.Tuple;
 import org.apache.solr.client.solrj.io.comp.StreamComparator;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.SolrParams;
+
 /**
 *  Queries a single Solr instance and maps SolrDocs to a Stream of Tuples.
 **/
-
 public class SolrStream extends TupleStream {
 
   private static final long serialVersionUID = 1;
 
   private String baseUrl;
   private Map<String, Object> params;
-  private int numWorkers;
-  private int workerID;
   private boolean trace;
   private Map<String, String> fieldMappings;
   private transient JSONTupleStream jsonTupleStream;
   private transient HttpSolrClient client;
-  private transient SolrClientCache cache;
-  private StreamContext context;
 
   public SolrStream(String baseUrl, Map<String, Object> params) {
+    this(baseUrl, params, new StreamContext());
+  }
+
+  public SolrStream(String baseUrl, Map<String, Object> params, StreamContext streamContext) {
     this.baseUrl = baseUrl;
     this.params = params;
-    this.context = new StreamContext();
+    this.streamContext = streamContext;
   }
 
   public void setFieldMappings(Map<String, String> fieldMappings) {
@@ -66,35 +65,20 @@ public class SolrStream extends TupleStream {
     return baseUrl;
   }
 
-  public void setStreamContext(StreamContext context) {
-    this.context = context;
-    this.numWorkers = context.numWorkers;
-    this.workerID = context.workerID;
-    this.cache = context.getSolrClientCache();
-  }
-
-  @Override
-  public StreamContext getStreamContext() {
-    return this.context;
-  }
-
   /**
   * Opens the stream to a single Solr instance.
   **/
 
   public void open() throws IOException {
 
-    if(cache == null) {
+    if(getStreamContext().getSolrClientCache() == null) {
       client = new HttpSolrClient(baseUrl);
     } else {
-      client = cache.getHttpSolrClient(baseUrl);
+      client = getStreamContext().getSolrClientCache().getHttpSolrClient(baseUrl);
     }
 
     try {
-      jsonTupleStream = JSONTupleStream.create(client, loadParams(params));
-
-      // Fill StreamContext entries with entries from JSON TupleStream
-      this.context.getEntries().putAll(jsonTupleStream.getStreamContext().getEntries());
+      jsonTupleStream = JSONTupleStream.create(client, loadParams(params), streamContext);
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -116,7 +100,7 @@ public class SolrStream extends TupleStream {
         solrParams.add("fq", partitionFilter);
       }
     } else {
-      if(numWorkers > 1) {
+      if(getStreamContext().numWorkers > 1) {
         throw new IOException("When numWorkers > 1 partitionKeys must be set. Set partitionKeys=none to send the entire stream to each worker.");
       }
     }
@@ -129,7 +113,7 @@ public class SolrStream extends TupleStream {
   }
 
   private String getPartitionFilter() {
-    return "{!hash workers=" + this.numWorkers + " worker=" + this.workerID + "}";
+    return "{!hash workers=" + getStreamContext().numWorkers + " worker=" + getStreamContext().workerID + "}";
   }
 
   /**
@@ -142,7 +126,7 @@ public class SolrStream extends TupleStream {
       jsonTupleStream.close();
     }
 
-    if(cache == null) {
+    if(getStreamContext().getSolrClientCache() == null) {
       client.close();
     }
   }

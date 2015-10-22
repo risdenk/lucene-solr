@@ -17,6 +17,7 @@
 
 package org.apache.solr.client.solrj.io.stream;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.Writer;
@@ -28,11 +29,11 @@ import org.apache.solr.client.solrj.io.comp.StreamComparator;
 import org.noggit.JSONUtil;
 
 
-public abstract class TupleStream implements Serializable {
+public abstract class TupleStream implements Serializable, Closeable {
 
   private static final long serialVersionUID = 1;
 
-  private static final StreamContext streamContext = new StreamContext();
+  protected StreamContext streamContext = new StreamContext();
 
   public TupleStream() {
 
@@ -47,7 +48,7 @@ public abstract class TupleStream implements Serializable {
   }
 
   public StreamContext getStreamContext() {
-    return streamContext;
+    return this.streamContext;
   }
 
   public abstract List<TupleStream> children();

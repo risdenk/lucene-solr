@@ -57,7 +57,6 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
   private TupleStream tupleStream;
   private int workers;
   private boolean objectSerialize = true;
-  private transient StreamFactory streamFactory;
 
   public ParallelStream(String zkHost,
                         String collection,
@@ -74,15 +73,13 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
                         int workers,
                         StreamComparator comp) throws IOException {
     objectSerialize = false;
-    TupleStream tStream = this.streamFactory.constructStream(expressionString);
+    TupleStream tStream = this.getStreamContext().getStreamFactory().constructStream(expressionString);
     init(zkHost,collection, tStream, workers,comp);
   }
 
-  public void setStreamFactory(StreamFactory streamFactory) {
-    this.streamFactory = streamFactory;
-  }
-
   public ParallelStream(StreamExpression expression, StreamFactory factory) throws IOException {
+    this.getStreamContext().setStreamFactory(factory);
+
     // grab all parameters out
     objectSerialize = false;
     String collectionName = factory.getValueOperand(expression, 0);
@@ -143,7 +140,6 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
     // We've got all the required items    
     TupleStream stream = factory.constructStream(streamExpressions.get(0));
     StreamComparator comp = factory.constructComparator(((StreamExpressionValue)sortExpression.getParameter()).getValue(), FieldComparator.class);
-    streamFactory = factory;
     init(zkHost,collectionName,stream,workersInt,comp);
   }
 
@@ -224,7 +220,6 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
   }
 
   protected void constructStreams() throws IOException {
-
     try {
       Object pushStream;
 
@@ -236,7 +231,7 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
         String encoded = Base64.byteArrayToBase64(bytes, 0, bytes.length);
         pushStream = URLEncoder.encode(encoded, "UTF-8");
       } else {
-        pushStream = ((Expressible) tupleStream).toExpression(streamFactory);
+        pushStream = ((Expressible) tupleStream).toExpression(this.getStreamContext().getStreamFactory());
       }
 
       ZkStateReader zkStateReader = cloudSolrClient.getZkStateReader();
@@ -263,7 +258,7 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
         params.put("workerID", w);
         params.put("stream", pushStream);
         params.put("qt","/stream");
-        params.put("objectSerialize", Boolean.toString(objectSerialize));
+        params.put("objectSerialize", objectSerialize);
         Replica rep = shuffler.get(w);
         ZkCoreNodeProps zkProps = new ZkCoreNodeProps(rep);
         String url = zkProps.getCoreUrl();

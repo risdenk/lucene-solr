@@ -43,15 +43,16 @@ import org.noggit.ObjectBuilder;
 */
 
 public class JSONTupleStream {
-  private StreamContext streamContext = new StreamContext();
+  private StreamContext streamContext;
   private List<String> path;  // future... for more general stream handling
   private Reader reader;
   private JSONParser parser;
   private boolean atDocs;
 
-  public JSONTupleStream(Reader reader) throws IOException {
+  public JSONTupleStream(Reader reader, StreamContext streamContext) throws IOException {
     this.reader = reader;
     this.parser = new JSONParser(reader);
+    this.streamContext = streamContext;
     init();
   }
 
@@ -79,6 +80,10 @@ public class JSONTupleStream {
 
   // temporary...
   public static JSONTupleStream create(SolrClient server, SolrParams requestParams) throws IOException, SolrServerException {
+    return create(server, requestParams, new StreamContext());
+  }
+
+  public static JSONTupleStream create(SolrClient server, SolrParams requestParams, StreamContext streamContext) throws IOException, SolrServerException {
     String p = requestParams.get("qt");
     if(p != null) {
       ModifiableSolrParams modifiableSolrParams = (ModifiableSolrParams) requestParams;
@@ -92,7 +97,7 @@ public class JSONTupleStream {
     NamedList<Object> genericResponse = server.request(query);
     InputStream stream = (InputStream)genericResponse.get("stream");
     InputStreamReader reader = new InputStreamReader(stream, "UTF-8");
-    return new JSONTupleStream(reader);
+    return new JSONTupleStream(reader, streamContext);
   }
 
   /** returns the next Tuple or null */

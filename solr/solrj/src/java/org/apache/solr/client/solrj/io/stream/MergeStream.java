@@ -50,7 +50,7 @@ public class MergeStream extends TupleStream implements Expressible {
     init(comp, streams);
   }
   
-  public MergeStream(StreamExpression expression,StreamFactory factory) throws IOException {
+  public MergeStream(StreamExpression expression, StreamFactory factory) throws IOException {
     // grab all parameters out
     List<StreamExpression> streamExpressions = factory.getExpressionOperandsRepresentingTypes(expression, Expressible.class, TupleStream.class);
     StreamExpressionNamedParameter onExpression = factory.getNamedOperand(expression, "on");
@@ -90,7 +90,7 @@ public class MergeStream extends TupleStream implements Expressible {
     // Convert to PushBack streams so we can push back tuples
     this.streams = new PushBackStream[streams.length];
     for(int idx = 0; idx < streams.length; ++idx){
-      this.streams[idx] = new PushBackStream(streams[idx]);
+      this.streams[idx] = new PushBackStream(streams[idx], getStreamContext());
     }
     this.comp = comp;
   }

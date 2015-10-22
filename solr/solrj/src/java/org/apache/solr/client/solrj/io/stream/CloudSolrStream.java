@@ -74,15 +74,12 @@ public class CloudSolrStream extends TupleStream implements Expressible {
   protected StreamComparator comp;
   private int zkConnectTimeout = 10000;
   private int zkClientTimeout = 10000;
-  private int numWorkers;
-  private int workerID;
   private boolean trace;
   protected transient Map<String, Tuple> eofTuples;
   protected transient SolrClientCache cache;
   protected transient CloudSolrClient cloudSolrClient;
   protected transient List<TupleStream> solrStreams;
   protected transient TreeSet<TupleWrapper> tuples;
-  protected transient StreamContext streamContext = new StreamContext();
 
   // Used by parallel stream
   protected CloudSolrStream(){
@@ -210,18 +207,6 @@ public class CloudSolrStream extends TupleStream implements Expressible {
     this.trace = trace;
   }
 
-  public void setStreamContext(StreamContext context) {
-    this.numWorkers = context.numWorkers;
-    this.workerID = context.workerID;
-    this.cache = context.getSolrClientCache();
-    this.streamContext = context;
-  }
-
-  @Override
-  public StreamContext getStreamContext() {
-    return this.streamContext;
-  }
-
   /**
   * Opens the CloudSolrStream
   *
@@ -326,10 +311,8 @@ public class CloudSolrStream extends TupleStream implements Expressible {
         Replica rep = shuffler.get(0);
         ZkCoreNodeProps zkProps = new ZkCoreNodeProps(rep);
         String url = zkProps.getCoreUrl();
-        SolrStream solrStream = new SolrStream(url, params);
-        if(streamContext != null) {
-          solrStream.setStreamContext(streamContext);
-        }
+        SolrStream solrStream = new SolrStream(url, params, getStreamContext());
+
         solrStream.setFieldMappings(this.fieldMappings);
         solrStreams.add(solrStream);
       }
