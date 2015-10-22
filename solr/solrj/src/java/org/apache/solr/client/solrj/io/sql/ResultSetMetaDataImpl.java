@@ -103,7 +103,8 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
 
   @Override
   public String getTableName(int column) throws SQLException {
-    return null;
+    // TODO pass info from result/connection?
+    return "";
   }
 
   @Override
