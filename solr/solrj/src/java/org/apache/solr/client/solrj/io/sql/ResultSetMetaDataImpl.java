@@ -59,7 +59,7 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
 
   @Override
   public int isNullable(int column) throws SQLException {
-    return 0;
+    return columnNullableUnknown;
   }
 
   @Override
@@ -69,17 +69,21 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
 
   @Override
   public int getColumnDisplaySize(int column) throws SQLException {
-    return 0;
+    return getColumnLabel(column).length();
   }
 
   @Override
   public String getColumnLabel(int column) throws SQLException {
-    return null;
+    return getColumnName(column);
   }
 
   @Override
   public String getColumnName(int column) throws SQLException {
-    return null;
+    if(column > 0 && column <= this.fields.size()) {
+      return this.fields.get(column - 1);
+    } else {
+      throw new SQLException("Invalid column:" + column);
+    }
   }
 
   @Override
