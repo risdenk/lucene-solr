@@ -295,7 +295,11 @@ class ResultSetImpl implements ResultSet {
 
   @Override
   public int findColumn(String columnLabel) throws SQLException {
-    throw new UnsupportedOperationException();
+    int result = this.fields.indexOf(columnLabel);
+    if(result == -1) {
+      throw new SQLException("Could not find " +columnLabel);
+    }
+    return result;
   }
 
   @Override
