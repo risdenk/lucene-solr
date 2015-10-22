@@ -50,7 +50,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public String getURL() throws SQLException {
-    return null;
+    return "jdbc:solr://this.client.getZkHost()?collection=" + this.collection;
   }
 
   @Override
@@ -60,7 +60,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public boolean isReadOnly() throws SQLException {
-    return false;
+    return true;
   }
 
   @Override
@@ -85,31 +85,37 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public String getDatabaseProductName() throws SQLException {
-    return null;
+    // TODO Get name from POM?
+    return "Apache Solr";
   }
 
   @Override
   public String getDatabaseProductVersion() throws SQLException {
-    return null;
+    // TODO Replace with POM variable or from Solr Server?
+    return "6.0.0-SNAPSHOT";
   }
 
   @Override
   public String getDriverName() throws SQLException {
-    return "Solr JDBC";
+    // TODO Get name from POM?
+    return "Apache Solr JDBC";
   }
 
   @Override
   public String getDriverVersion() throws SQLException {
-    return null;
+    // TODO Replace with POM variable?
+    return "6.0.0-SNAPSHOT";
   }
 
   @Override
   public int getDriverMajorVersion() {
-    return 0;
+    // TODO Replace with POM variable?
+    return 6;
   }
 
   @Override
   public int getDriverMinorVersion() {
+    // TODO Replace with POM variable?
     return 0;
   }
 
@@ -856,21 +862,25 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public int getDatabaseMajorVersion() throws SQLException {
-    return 0;
+    // TODO Get version from Solr server?
+    return 6;
   }
 
   @Override
   public int getDatabaseMinorVersion() throws SQLException {
+    // TODO Get version from Solr server?
     return 0;
   }
 
   @Override
   public int getJDBCMajorVersion() throws SQLException {
-    return 0;
+    // TODO Get version from POM?
+    return 6;
   }
 
   @Override
   public int getJDBCMinorVersion() throws SQLException {
+    // TODO Get version from POM?
     return 0;
   }
 
