@@ -4,5 +4,6 @@ jdk:
 script:
   - ant ivy-bootstrap
   - cd solr
+  - ant dist
   - ant -Dtests.class="org.apache.solr.client.solrj.io.*" test
   - ant -Dtests.class="org.apache.solr.handler.TestSQLHandler" test
