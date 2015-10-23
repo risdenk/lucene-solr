@@ -25,6 +25,7 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -72,10 +73,6 @@ public class DriverImpl implements Driver {
     return new ConnectionImpl(zkHost, collection, props);
   }
 
-  public Connection connect(String url) throws SQLException {
-    return connect(url, new Properties());
-  }
-
   public int getMajorVersion() {
     // TODO get from POM?
     return 6;
@@ -94,11 +91,8 @@ public class DriverImpl implements Driver {
     return false;
   }
 
-
-  @SuppressForbidden(reason="Required by jdbc")
-
-  public Logger getParentLogger() {
-    return null;
+  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+    throw new SQLFeatureNotSupportedException();
   }
 
   public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
