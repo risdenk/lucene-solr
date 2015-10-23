@@ -102,8 +102,8 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     String zkHost = zkServer.getZkAddress();
 
     Properties props = new Properties();
-    try(Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
-      try(Statement stmt = con.createStatement()) {
+    try (Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
+      try (Statement stmt = con.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i desc limit 2")) {
           assert (rs.next());
           assert (rs.getLong(2) == 14);
@@ -124,7 +124,7 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
         }
 
         //Test statement reuse
-        try(ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i asc limit 2")) {
+        try (ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i asc limit 2")) {
           assert (rs.next());
           assert (rs.getLong("a_i") == 0);
           assert (rs.getString("a_s").equals("hello0"));
@@ -139,7 +139,7 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
       }
 
       //Test connection reuse
-      try(Statement stmt = con.createStatement()) {
+      try (Statement stmt = con.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i desc limit 2")) {
           assert (rs.next());
           assert (rs.getLong("a_i") == 14);
@@ -157,7 +157,7 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
         }
 
         //Test simple loop
-        try(ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i asc limit 100")) {
+        try (ResultSet rs = stmt.executeQuery("select id, a_i, a_s, a_f from collection1 order by a_i asc limit 100")) {
           int count = 0;
           while (rs.next()) {
             ++count;
@@ -171,8 +171,8 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     //Test facet aggregation
     props = new Properties();
     props.put("aggregationMode", "facet");
-    try(Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
-      try(Statement stmt = con.createStatement()) {
+    try (Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
+      try (Statement stmt = con.createStatement()) {
         try (ResultSet rs = stmt.executeQuery(
             "select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc")) {
 
@@ -195,9 +195,9 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     props = new Properties();
     props.put("aggregationMode", "map_reduce");
     props.put("numWorkers", "2");
-    try(Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
-      try(Statement stmt = con.createStatement()) {
-        try(ResultSet rs = stmt.executeQuery(
+    try (Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
+      try (Statement stmt = con.createStatement()) {
+        try (ResultSet rs = stmt.executeQuery(
             "select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc")) {
 
           assert (rs.next());
@@ -216,16 +216,75 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     }
 
     //Test params on the url
-    try(Connection con = DriverManager.getConnection(
+    try (Connection con = DriverManager.getConnection(
         "jdbc:solr://" + zkHost + "?collection=collection1&aggregationMode=map_reduce&numWorkers=2")) {
-      Properties p = ((ConnectionImpl)con).getProperties();
-      assert(p.getProperty("aggregationMode").equals("map_reduce"));
-      assert(p.getProperty("numWorkers").equals("2"));
+      Properties p = ((ConnectionImpl) con).getProperties();
+      assert (p.getProperty("aggregationMode").equals("map_reduce"));
+      assert (p.getProperty("numWorkers").equals("2"));
 
-      try(Statement stmt = con.createStatement()) {
+      try (Statement stmt = con.createStatement()) {
         try (ResultSet rs = stmt.executeQuery(
             "select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc")) {
 
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello3"));
+          assert (rs.getDouble("sum(a_f)") == 26);
+
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello0"));
+          assert (rs.getDouble("sum(a_f)") == 18);
+
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello4"));
+          assert (rs.getDouble("sum(a_f)") == 11);
+        }
+      }
+    }
+
+    // Test JDBC paramters in URL
+    try (Connection con = DriverManager.getConnection(
+        "jdbc:solr://" + zkHost + "?collection=collection1&username=&password=&testKey1=testValue&testKey2")) {
+
+      Properties p = ((ConnectionImpl) con).getProperties();
+      assert (p.getProperty("username").equals(""));
+      assert (p.getProperty("password").equals(""));
+      assert (p.getProperty("testKey1").equals("testValue"));
+      assert (p.getProperty("testKey2").equals(""));
+
+      try (Statement stmt = con.createStatement()) {
+        try (ResultSet rs = stmt.executeQuery("select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc")) {
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello3"));
+          assert (rs.getDouble("sum(a_f)") == 26);
+
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello0"));
+          assert (rs.getDouble("sum(a_f)") == 18);
+
+          assert (rs.next());
+          assert (rs.getString("a_s").equals("hello4"));
+          assert (rs.getDouble("sum(a_f)") == 11);
+        }
+      }
+    }
+
+    // Test JDBC paramters in properties
+    Properties providedProperties = new Properties();
+    providedProperties.put("collection", "collection1");
+    providedProperties.put("username", "");
+    providedProperties.put("password", "");
+    providedProperties.put("testKey1", "testValue");
+    providedProperties.put("testKey2", "");
+
+    try (Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost, providedProperties)) {
+      Properties p = ((ConnectionImpl) con).getProperties();
+      assert (p.getProperty("username").equals(""));
+      assert (p.getProperty("password").equals(""));
+      assert (p.getProperty("testKey1").equals("testValue"));
+      assert (p.getProperty("testKey2").equals(""));
+
+      try (Statement stmt = con.createStatement()) {
+        try (ResultSet rs = stmt.executeQuery("select a_s, sum(a_f) from collection1 group by a_s order by sum(a_f) desc")) {
           assert (rs.next());
           assert (rs.getString("a_s").equals("hello3"));
           assert (rs.getDouble("sum(a_f)") == 26);
