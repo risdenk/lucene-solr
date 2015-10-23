@@ -19,9 +19,8 @@ package org.apache.solr.client.solrj.io;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Map;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Map;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
@@ -30,17 +29,17 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- *  The SolrClientCache caches SolrClients so they can be reused by different TupleStreams.
+ * The SolrClientCache caches SolrClients so they can be reused by different TupleStreams.
  **/
 
 public class SolrClientCache implements Serializable {
 
   protected static final Logger log = LoggerFactory.getLogger(SolrClientCache.class);
 
-  private Map<String, SolrClient> solrClients = new HashMap();
+  private Map<String, SolrClient> solrClients = new HashMap<>();
 
   public synchronized CloudSolrClient getCloudSolrClient(String zkHost) {
-    CloudSolrClient client = null;
+    CloudSolrClient client;
     if (solrClients.containsKey(zkHost)) {
       client = (CloudSolrClient) solrClients.get(zkHost);
     } else {
@@ -53,7 +52,7 @@ public class SolrClientCache implements Serializable {
   }
 
   public synchronized HttpSolrClient getHttpSolrClient(String host) {
-    HttpSolrClient client = null;
+    HttpSolrClient client;
     if (solrClients.containsKey(host)) {
       client = (HttpSolrClient) solrClients.get(host);
     } else {
@@ -64,10 +63,9 @@ public class SolrClientCache implements Serializable {
   }
 
   public void close() {
-    Iterator<SolrClient> it = solrClients.values().iterator();
-    while(it.hasNext()) {
+    for (SolrClient solrClient : solrClients.values()) {
       try {
-        it.next().close();
+        solrClient.close();
       } catch (IOException e) {
         log.error(e.getMessage(), e);
       }
