@@ -1,9 +1,11 @@
 language: java
 jdk:
   - oraclejdk8
+env:
+ - ANT_COMMAND="-Dtests.class=org.apache.solr.client.solrj.io.* test"
+ - ANT_COMMAND="-Dtests.class=org.apache.solr.handler.TestSQLHandler test"
+ - ANT_COMMAND="precommit"
 script:
   - ant ivy-bootstrap
   - cd solr
-  - ant dist
-  - ant -Dtests.class="org.apache.solr.client.solrj.io.*" test
-  - ant -Dtests.class="org.apache.solr.handler.TestSQLHandler" test
+  - ant ANT_COMMAND
