@@ -201,6 +201,9 @@ class StatementImpl implements Statement {
 
   @Override
   public int getUpdateCount() throws SQLException {
+    if(isClosed()) {
+      throw new SQLException("Statement is closed");
+    }
     return -1;
   }
 
