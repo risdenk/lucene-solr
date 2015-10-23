@@ -91,6 +91,7 @@ public class DriverImpl implements Driver {
     return false;
   }
 
+  @SuppressForbidden(reason = "Required for JDBC java.sql.Driver interface")
   public Logger getParentLogger() throws SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException();
   }
