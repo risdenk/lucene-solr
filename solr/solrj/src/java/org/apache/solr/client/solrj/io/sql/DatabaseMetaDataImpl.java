@@ -53,6 +53,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public String getUserName() throws SQLException {
+    // TODO can this be used? with basic auth???
     return null;
   }
 
@@ -174,26 +175,31 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public String getSQLKeywords() throws SQLException {
+    // TODO determine if there are special keywords
     return null;
   }
 
   @Override
   public String getNumericFunctions() throws SQLException {
+    // TODO determine if there are special numeric functions
     return null;
   }
 
   @Override
   public String getStringFunctions() throws SQLException {
+    // TODO determine if there are special string functions
     return null;
   }
 
   @Override
   public String getSystemFunctions() throws SQLException {
+    // TODO determine if there are special system functions
     return null;
   }
 
   @Override
   public String getTimeDateFunctions() throws SQLException {
+    // TODO determine if there are special time/date functions
     return null;
   }
 
