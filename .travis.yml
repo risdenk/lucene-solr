@@ -8,4 +8,4 @@ env:
 script:
   - ant ivy-bootstrap
   - cd solr
-  - ant ANT_COMMAND
+  - ant $ANT_COMMAND
