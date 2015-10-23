@@ -8,7 +8,6 @@ addons:
 env:
  - DIR=solr COMMAND="ant -Dtests.class=org.apache.solr.client.solrj.io.* test"
  - DIR=solr COMMAND="ant -Dtests.class=org.apache.solr.handler.TestSQLHandler test"
- - DIR=. COMMAND="ant precommit"
 matrix:
   fast_finish: true
 script:
