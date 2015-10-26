@@ -36,6 +36,15 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
     this.connection = connection;
   }
 
+  private int getVersionPart(String version, int part) {
+    if(version != null) {
+      String[] versionParts = version.split("\\.", 3);
+      return Integer.parseInt(versionParts[part]);
+    } else {
+      return 0;
+    }
+  }
+
   @Override
   public boolean allProceduresAreCallable() throws SQLException {
     return false;
@@ -84,38 +93,52 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public String getDatabaseProductName() throws SQLException {
-    // TODO Get name from POM?
+    // TODO Query Solr Server for name?
     return "Apache Solr";
   }
 
   @Override
   public String getDatabaseProductVersion() throws SQLException {
-    // TODO Replace with POM variable or from Solr Server?
-    return "6.0.0-SNAPSHOT";
+    // TODO Query Solr Server for version?
+    return "6.0.0";
+  }
+
+  @Override
+  public int getDatabaseMajorVersion() throws SQLException {
+    return getVersionPart(this.getDatabaseProductVersion(), 0);
+  }
+
+  @Override
+  public int getDatabaseMinorVersion() throws SQLException {
+    return getVersionPart(this.getDatabaseProductVersion(), 1);
   }
 
   @Override
   public String getDriverName() throws SQLException {
-    // TODO Get name from POM?
-    return "Apache Solr JDBC";
+    return this.getClass().getPackage().getSpecificationTitle();
   }
 
   @Override
   public String getDriverVersion() throws SQLException {
-    // TODO Replace with POM variable?
-    return "6.0.0-SNAPSHOT";
+    return this.getClass().getPackage().getSpecificationVersion();
   }
 
   @Override
   public int getDriverMajorVersion() {
-    // TODO Replace with POM variable?
-    return 6;
+    try {
+      return getVersionPart(this.getDriverVersion(), 0);
+    } catch (SQLException e) {
+      return 0;
+    }
   }
 
   @Override
   public int getDriverMinorVersion() {
-    // TODO Replace with POM variable?
-    return 0;
+    try {
+      return getVersionPart(this.getDriverVersion(), 1);
+    } catch (SQLException e) {
+      return 0;
+    }
   }
 
   @Override
@@ -865,26 +888,12 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
   }
 
   @Override
-  public int getDatabaseMajorVersion() throws SQLException {
-    // TODO Get version from Solr server?
-    return 6;
-  }
-
-  @Override
-  public int getDatabaseMinorVersion() throws SQLException {
-    // TODO Get version from Solr server?
-    return 0;
-  }
-
-  @Override
   public int getJDBCMajorVersion() throws SQLException {
-    // TODO Get version from POM?
-    return 6;
+    return 4;
   }
 
   @Override
   public int getJDBCMinorVersion() throws SQLException {
-    // TODO Get version from POM?
     return 0;
   }
 
