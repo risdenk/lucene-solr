@@ -816,6 +816,18 @@ public class CloudSolrClient extends SolrClient {
       AUTHZ_PATH));
 
   /**
+   * Checks if the request path starts with a path from ADMIN_PATHS
+   */
+  private boolean checkPathIsAdmin(String path) {
+    for(String admin_path : ADMIN_PATHS) {
+      if(path.startsWith(admin_path)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * As this class doesn't watch external collections on the client side,
    * there's a chance that the request will fail due to cached stale state,
    * which means the state must be refreshed from ZK and retried.
@@ -831,7 +843,7 @@ public class CloudSolrClient extends SolrClient {
     // collections is stale and needs to be refreshed ... this code has no impact on internal collections
     String stateVerParam = null;
     List<DocCollection> requestedCollections = null;
-    boolean isAdmin = ADMIN_PATHS.contains(request.getPath());
+    boolean isAdmin = checkPathIsAdmin(request.getPath());
     if (collection != null &&  !isAdmin) { // don't do _stateVer_ checking for admin requests
       Set<String> requestedCollectionNames = getCollectionNames(getZkStateReader().getClusterState(), collection);
 
@@ -995,7 +1007,7 @@ public class CloudSolrClient extends SolrClient {
       reqParams = new ModifiableSolrParams();
     }
     List<String> theUrlList = new ArrayList<>();
-    if (ADMIN_PATHS.contains(request.getPath())) {
+    if (checkPathIsAdmin(request.getPath())) {
       Set<String> liveNodes = clusterState.getLiveNodes();
       for (String liveNode : liveNodes) {
         theUrlList.add(zkStateReader.getBaseUrlForNodeName(liveNode));
