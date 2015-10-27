@@ -109,6 +109,10 @@ solrAdminApp.config([
         templateUrl: 'partials/query.html',
         controller: 'QueryController'
       }).
+    when('/:core/sql', {
+      templateUrl: 'partials/sql.html',
+      controller: 'SQLController'
+    }).
       when('/:core/replication', {
         templateUrl: 'partials/replication.html',
         controller: 'ReplicationController'

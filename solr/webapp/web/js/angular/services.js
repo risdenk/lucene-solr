@@ -234,6 +234,30 @@ solrAdminServices.factory('System',
        }
        return resource;
 }])
+.factory('SQL',
+    ['$resource', function($resource) {
+      var resource = $resource('/solr/:core/sql', {core: '@core', '_':Date.now()}, {
+        "query": {
+          method: "GET",
+          transformResponse: function (data) {
+            return {data: data}
+          },
+          headers: {doNotIntercept: "true"}
+        }
+      });
+      resource.url = function(params) {
+        var qs = [];
+        for (key in params) {
+          if (key != "core" && key != "handler") {
+            for (var i in params[key]) {
+              qs.push(key + "=" + params[key][i]);
+            }
+          }
+        }
+        return "/solr/" + params.core + "/sql?" + qs.sort().join("&");
+      }
+      return resource;
+    }])
 .factory('Segments',
    ['$resource', function($resource) {
        return $resource('/solr/:core/admin/segments', {'wt':'json', core: '@core', _:Date.now()}, {
