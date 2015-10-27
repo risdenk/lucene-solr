@@ -17,11 +17,20 @@ package org.apache.solr.client.solrj.io.sql;
  * limitations under the License.
  */
 
+import java.io.IOException;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.List;
 
+import org.apache.solr.client.solrj.SolrRequest;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.io.stream.SolrStream;
+import org.apache.solr.client.solrj.request.GenericSolrRequest;
+import org.apache.solr.common.params.ModifiableSolrParams;
+import org.apache.solr.common.util.NamedList;
+import org.apache.solr.common.util.SimpleOrderedMap;
 
 public class ResultSetMetaDataImpl implements ResultSetMetaData {
   private final ResultSetImpl resultSet;
@@ -112,12 +121,34 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
 
   @Override
   public int getColumnType(int column) throws SQLException {
-    return 0;
+    String type = getColumnTypeName(column);
+    switch(type) {
+      case "string":
+        return Types.VARCHAR;
+      case "int":
+        return Types.INTEGER;
+      case "float":
+        return Types.FLOAT;
+      case "double":
+        return Types.DOUBLE;
+      default:
+        return Types.DOUBLE;
+    }
   }
 
   @Override
   public String getColumnTypeName(int column) throws SQLException {
-    return null;
+    CloudSolrClient solrClient =  this.resultSet.getStatementImpl().getConnectionImpl().getClient();
+    String collection = this.resultSet.getStatementImpl().getConnectionImpl().getCollection();
+    String path = "/schema/fields/" + this.resultSet.lookupColumnLabel(column);
+    GenericSolrRequest request = new GenericSolrRequest(SolrRequest.METHOD.GET, path, new ModifiableSolrParams());
+    try {
+      NamedList<Object> namedList = solrClient.request(request, collection);
+      return String.valueOf(((SimpleOrderedMap)namedList.get("field")).get("type"));
+    } catch (SolrServerException | IOException e) {
+      //throw new SQLException(e);
+      return "";
+    }
   }
 
   @Override
