@@ -65,7 +65,6 @@ import org.apache.solr.common.cloud.ZkCoreNodeProps;
 import org.apache.solr.common.cloud.ZkNodeProps;
 import org.apache.solr.common.cloud.ZkStateReader;
 import org.apache.solr.common.cloud.ZooKeeperException;
-import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.ShardParams;
 import org.apache.solr.common.params.SolrParams;
@@ -85,7 +84,6 @@ import static org.apache.solr.common.params.CommonParams.AUTHZ_PATH;
 import static org.apache.solr.common.params.CommonParams.COLLECTIONS_HANDLER_PATH;
 import static org.apache.solr.common.params.CommonParams.CONFIGSETS_HANDLER_PATH;
 import static org.apache.solr.common.params.CommonParams.CORES_HANDLER_PATH;
-import static org.apache.solr.common.params.CommonParams.INFO_HANDLER_PATH;
 
 /**
  * SolrJ client class to communicate with SolrCloud.
@@ -811,21 +809,8 @@ public class CloudSolrClient extends SolrClient {
       CORES_HANDLER_PATH,
       COLLECTIONS_HANDLER_PATH,
       CONFIGSETS_HANDLER_PATH,
-      INFO_HANDLER_PATH,
       AUTHC_PATH,
       AUTHZ_PATH));
-
-  /**
-   * Checks if the request path starts with a path from ADMIN_PATHS
-   */
-  private boolean checkPathIsAdmin(String path) {
-    for(String admin_path : ADMIN_PATHS) {
-      if(path.startsWith(admin_path)) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   /**
    * As this class doesn't watch external collections on the client side,
@@ -843,7 +828,7 @@ public class CloudSolrClient extends SolrClient {
     // collections is stale and needs to be refreshed ... this code has no impact on internal collections
     String stateVerParam = null;
     List<DocCollection> requestedCollections = null;
-    boolean isAdmin = checkPathIsAdmin(request.getPath());
+    boolean isAdmin = ADMIN_PATHS.contains(request.getPath());
     if (collection != null &&  !isAdmin) { // don't do _stateVer_ checking for admin requests
       Set<String> requestedCollectionNames = getCollectionNames(getZkStateReader().getClusterState(), collection);
 
@@ -1007,7 +992,7 @@ public class CloudSolrClient extends SolrClient {
       reqParams = new ModifiableSolrParams();
     }
     List<String> theUrlList = new ArrayList<>();
-    if (checkPathIsAdmin(request.getPath())) {
+    if (ADMIN_PATHS.contains(request.getPath())) {
       Set<String> liveNodes = clusterState.getLiveNodes();
       for (String liveNode : liveNodes) {
         theUrlList.add(zkStateReader.getBaseUrlForNodeName(liveNode));
