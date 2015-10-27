@@ -132,12 +132,13 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
       case "double":
         return Types.DOUBLE;
       default:
-        return Types.DOUBLE;
+        return Types.OTHER;
     }
   }
 
   @Override
   public String getColumnTypeName(int column) throws SQLException {
+    // TODO Get from result somehow?
     CloudSolrClient solrClient =  this.resultSet.getStatementImpl().getConnectionImpl().getClient();
     String collection = this.resultSet.getStatementImpl().getConnectionImpl().getCollection();
     String path = "/schema/fields/" + this.resultSet.lookupColumnLabel(column);
@@ -145,8 +146,8 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
     try {
       NamedList<Object> namedList = solrClient.request(request, collection);
       return String.valueOf(((SimpleOrderedMap)namedList.get("field")).get("type"));
-    } catch (SolrServerException | IOException e) {
-      //throw new SQLException(e);
+    } catch (SolrServerException | IOException ignore) {
+      // Does it matter if we can't get the mapping?
       return "";
     }
   }

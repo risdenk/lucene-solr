@@ -192,7 +192,7 @@ class ResultSetImpl implements ResultSet {
 
   @Override
   public String getString(String columnLabel) throws SQLException {
-    return (String)tuple.get(columnLabel);
+    return String.valueOf(tuple.get(columnLabel));
   }
 
   @Override
@@ -702,7 +702,6 @@ class ResultSetImpl implements ResultSet {
   @Override
   public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
     throw new UnsupportedOperationException();
-
   }
 
   @Override
