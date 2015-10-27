@@ -28,12 +28,12 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.solr.client.solrj.SolrRequest;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.request.GenericSolrRequest;
-import org.apache.solr.common.params.ModifiableSolrParams;
-import org.apache.solr.common.util.NamedList;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.util.SimpleOrderedMap;
 
 public class DatabaseMetaDataImpl implements DatabaseMetaData {
@@ -44,7 +44,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
   }
 
   private int getVersionPart(String version, int part) {
-    if(version != null) {
+    if (version != null) {
       String[] versionParts = version.split("\\.", 3);
       return Integer.parseInt(versionParts[part]);
     } else {
@@ -106,14 +106,37 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public String getDatabaseProductVersion() throws SQLException {
-    GenericSolrRequest request = new GenericSolrRequest(SolrRequest.METHOD.GET, "/admin/info/system",
-        new ModifiableSolrParams());
+    String minVersion = "";
+
+    SolrQuery sysQuery = new SolrQuery();
+    sysQuery.setRequestHandler("/admin/info/system");
+
+    CloudSolrClient cloudSolrClient = this.connection.getClient();
+    Set<String> liveNodes = cloudSolrClient.getZkStateReader().getClusterState().getLiveNodes();
+    SolrClient solrClient = null;
     try {
-      NamedList<Object> namedList = this.connection.getClient().request(request, this.connection.getCollection());
-      return String.valueOf(((SimpleOrderedMap)namedList.get("lucene")).get("solr-spec-version"));
-    } catch (SolrServerException|IOException e) {
-      throw new SQLException(e);
+      for (String node : liveNodes) {
+        String nodeURL = cloudSolrClient.getZkStateReader().getBaseUrlForNodeName(node);
+        solrClient = new HttpSolrClient(nodeURL);
+
+        QueryResponse rsp = solrClient.query(sysQuery);
+        String version = String.valueOf(((SimpleOrderedMap) rsp.getResponse().get("lucene")).get("solr-spec-version"));
+        if (minVersion.isEmpty() || version.compareTo(minVersion) < 0) {
+          minVersion = version;
+        }
+      }
+    } catch (SolrServerException | IOException ignore) {
+      // ignore
+    } finally {
+      if (solrClient != null) {
+        try {
+          solrClient.close();
+        } catch (IOException ignore) {
+          // ignore
+        }
+      }
     }
+    return minVersion;
   }
 
   @Override
@@ -693,7 +716,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
   public ResultSet getSchemas() throws SQLException {
     Set<String> collections = this.connection.getClient().getZkStateReader().getClusterState().getCollections();
     LinkedList<LinkedList<Object>> rows = new LinkedList<>();
-    for(String collection : collections) {
+    for (String collection : collections) {
       LinkedList<Object> row = new LinkedList<>();
       row.add(collection);
       row.add("default");
