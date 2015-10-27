@@ -57,6 +57,10 @@ class ResultSetImpl implements ResultSet {
     this.fields = (List<String>)solrStream.getStreamContext().getEntries().get("fields");
   }
 
+  public StatementImpl getStatementImpl() {
+    return statement;
+  }
+
   public SolrStream getSolrStream() {
     return solrStream;
   }
@@ -69,7 +73,7 @@ class ResultSetImpl implements ResultSet {
     return tuple;
   }
 
-  private String lookupColumnLabel(int columnIndex) throws SQLException {
+  protected String lookupColumnLabel(int columnIndex) throws SQLException {
     if(columnIndex > 0 && columnIndex <= this.fields.size()) {
       return this.fields.get(columnIndex - 1);
     } else {
@@ -667,7 +671,7 @@ class ResultSetImpl implements ResultSet {
 
   @Override
   public Statement getStatement() throws SQLException {
-    return this.statement;
+    return getStatementImpl();
   }
 
   @Override

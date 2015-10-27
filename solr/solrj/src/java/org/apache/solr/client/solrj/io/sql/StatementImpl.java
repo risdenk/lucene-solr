@@ -56,6 +56,10 @@ class StatementImpl implements Statement {
     return solrStream;
   }
 
+  public ConnectionImpl getConnectionImpl() {
+    return connection;
+  }
+
   @Override
   public ResultSet executeQuery(String sql) throws SQLException {
     try {
@@ -259,7 +263,7 @@ class StatementImpl implements Statement {
 
   @Override
   public Connection getConnection() throws SQLException {
-    throw new UnsupportedOperationException();
+    return getConnectionImpl();
   }
 
   @Override
