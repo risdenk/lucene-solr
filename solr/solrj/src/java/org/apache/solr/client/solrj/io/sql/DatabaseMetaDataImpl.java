@@ -17,6 +17,7 @@ package org.apache.solr.client.solrj.io.sql;
  * limitations under the License.
  */
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -27,7 +28,13 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.solr.client.solrj.SolrRequest;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
+import org.apache.solr.client.solrj.request.GenericSolrRequest;
+import org.apache.solr.common.params.ModifiableSolrParams;
+import org.apache.solr.common.util.NamedList;
+import org.apache.solr.common.util.SimpleOrderedMap;
 
 public class DatabaseMetaDataImpl implements DatabaseMetaData {
   private final ConnectionImpl connection;
@@ -99,8 +106,14 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public String getDatabaseProductVersion() throws SQLException {
-    // TODO Query Solr Server for version?
-    return "6.0.0";
+    GenericSolrRequest request = new GenericSolrRequest(SolrRequest.METHOD.GET, "/admin/info/system",
+        new ModifiableSolrParams());
+    try {
+      NamedList<Object> namedList = this.connection.getClient().request(request, this.connection.getCollection());
+      return String.valueOf(((SimpleOrderedMap)namedList.get("lucene")).get("solr-spec-version"));
+    } catch (SolrServerException|IOException e) {
+      throw new SQLException(e);
+    }
   }
 
   @Override
