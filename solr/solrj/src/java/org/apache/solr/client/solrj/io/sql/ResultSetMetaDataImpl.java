@@ -21,21 +21,19 @@ import java.io.IOException;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.io.stream.SolrStream;
 import org.apache.solr.client.solrj.request.GenericSolrRequest;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.SimpleOrderedMap;
 
 public class ResultSetMetaDataImpl implements ResultSetMetaData {
-  private final Map<String, String> columnTypeCache = new HashMap<>();
+  private final List<String> functions = Arrays.asList("count", "min", "max", "sum", "avg");
   private final ResultSetImpl resultSet;
 
   ResultSetMetaDataImpl(ResultSetImpl resultSet) {
@@ -142,7 +140,11 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
   @Override
   public String getColumnTypeName(int column) throws SQLException {
     String columnName = this.resultSet.lookupColumnLabel(column);
-    if(!this.columnTypeCache.containsKey(columnName)) {
+
+    String columnType = "";
+    if(checkFunctions(columnName)) {
+      columnType = "double";
+    } else {
       CloudSolrClient solrClient = this.resultSet.getStatementImpl().getConnectionImpl().getClient();
       String collection = this.resultSet.getStatementImpl().getConnectionImpl().getCollection();
       String path = "/schema/fields/" + columnName;
@@ -151,14 +153,21 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
       GenericSolrRequest request = new GenericSolrRequest(SolrRequest.METHOD.GET, path, solrParams);
       try {
         NamedList<Object> namedList = solrClient.request(request, collection);
-        String columnType = String.valueOf(((SimpleOrderedMap) namedList.get("field")).get("type"));
-        this.columnTypeCache.put(columnName, columnType);
+        columnType = String.valueOf(((SimpleOrderedMap) namedList.get("field")).get("type"));
       } catch (SolrServerException | IOException ignore) {
         // Does it matter if we can't get the mapping?
       }
     }
+    return columnType;
+  }
 
-    return this.columnTypeCache.getOrDefault(columnName, "");
+  private boolean checkFunctions(String columnName) {
+    for(String function : functions) {
+      if(columnName.startsWith(function + "(") && columnName.endsWith(")")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
