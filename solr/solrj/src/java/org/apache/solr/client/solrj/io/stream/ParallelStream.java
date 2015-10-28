@@ -78,8 +78,6 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
   }
 
   public ParallelStream(StreamExpression expression, StreamFactory factory) throws IOException {
-    this.getStreamContext().setStreamFactory(factory);
-
     // grab all parameters out
     objectSerialize = false;
     String collectionName = factory.getValueOperand(expression, 0);
@@ -139,6 +137,7 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
     
     // We've got all the required items    
     TupleStream stream = factory.constructStream(streamExpressions.get(0));
+    stream.getStreamContext().setStreamFactory(factory);
     StreamComparator comp = factory.constructComparator(((StreamExpressionValue)sortExpression.getParameter()).getValue(), FieldComparator.class);
     init(zkHost,collectionName,stream,workersInt,comp);
   }
@@ -184,7 +183,12 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
     
     return expression;   
   }
-  
+
+  @Override
+  public StreamContext getStreamContext() {
+    return this.tupleStream.getStreamContext();
+  }
+
   public List<TupleStream> children() {
     List<TupleStream> l = new ArrayList<>();
     l.add(tupleStream);

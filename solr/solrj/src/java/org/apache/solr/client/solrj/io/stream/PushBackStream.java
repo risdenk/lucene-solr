@@ -47,7 +47,6 @@ public class PushBackStream extends TupleStream {
   public PushBackStream(TupleStream stream, StreamContext streamContext) {
     this.stream = stream;
     this.stream.streamContext = streamContext;
-    this.streamContext = streamContext;
   }
   
   public StreamExpressionParameter toExpression(StreamFactory factory) throws IOException{
@@ -92,8 +91,12 @@ public class PushBackStream extends TupleStream {
     return stream.getStreamSort();
   }
 
-
   public int getCost() {
     return 0;
+  }
+
+  @Override
+  public StreamContext getStreamContext() {
+    return this.stream.getStreamContext();
   }
 }
