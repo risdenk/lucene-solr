@@ -41,7 +41,7 @@ public class PushBackStream extends TupleStream {
   private Tuple tuple;
 
   public PushBackStream(TupleStream stream) {
-    this(stream, new StreamContext());
+    this(stream, stream.getStreamContext());
   }
 
   public PushBackStream(TupleStream stream, StreamContext streamContext) {

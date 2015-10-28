@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Collections;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.io.SolrClientCache;
 import org.apache.solr.client.solrj.io.Tuple;
 import org.apache.solr.client.solrj.io.comp.FieldComparator;
 import org.apache.solr.client.solrj.io.comp.MultipleFieldComparator;
@@ -53,9 +52,7 @@ public class FacetStream extends TupleStream  {
   private String zkHost;
   private Map<String, Object> params;
   private String collection;
-  protected transient SolrClientCache cache;
   protected transient CloudSolrClient cloudSolrClient;
-  private StreamContext context = new StreamContext();
 
   public FacetStream(String zkHost,
                      String collection,
@@ -82,23 +79,13 @@ public class FacetStream extends TupleStream  {
     }
   }
 
-  public void setStreamContext(StreamContext context) {
-    this.context = context;
-    cache = context.getSolrClientCache();
-  }
-
-  @Override
-  public StreamContext getStreamContext() {
-    return this.context;
-  }
-
   public List<TupleStream> children() {
     return new ArrayList<>();
   }
 
   public void open() throws IOException {
-    if(cache != null) {
-      cloudSolrClient = cache.getCloudSolrClient(zkHost);
+    if(getStreamContext().getSolrClientCache() != null) {
+      cloudSolrClient = getStreamContext().getSolrClientCache().getCloudSolrClient(zkHost);
     } else {
       cloudSolrClient = new CloudSolrClient(zkHost);
     }
@@ -121,7 +108,7 @@ public class FacetStream extends TupleStream  {
   }
 
   public void close() throws IOException {
-    if(cache == null) {
+    if(getStreamContext().getSolrClientCache() == null) {
       cloudSolrClient.close();
     }
   }
