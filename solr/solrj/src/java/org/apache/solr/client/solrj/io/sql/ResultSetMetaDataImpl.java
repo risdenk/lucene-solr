@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -33,11 +33,20 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.SimpleOrderedMap;
 
 public class ResultSetMetaDataImpl implements ResultSetMetaData {
-  private final List<String> functions = Arrays.asList("count", "min", "max", "sum", "avg");
+  private final Map<String, String> functionTypes = new HashMap<>();
   private final ResultSetImpl resultSet;
 
   ResultSetMetaDataImpl(ResultSetImpl resultSet) {
     this.resultSet = resultSet;
+    addFunctionTypes();
+  }
+
+  private void addFunctionTypes() {
+    functionTypes.put("count", "double");
+    functionTypes.put("sum", "double");
+    functionTypes.put("min", "double");
+    functionTypes.put("max", "double");
+    functionTypes.put("avg", "double");
   }
 
   @Override
@@ -141,10 +150,8 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
   public String getColumnTypeName(int column) throws SQLException {
     String columnName = this.resultSet.lookupColumnLabel(column);
 
-    String columnType = "";
-    if(checkFunctions(columnName)) {
-      columnType = "double";
-    } else {
+    String columnType = getFunctionType(columnName);
+    if(columnType.isEmpty()) {
       CloudSolrClient solrClient = this.resultSet.getStatementImpl().getConnectionImpl().getClient();
       String collection = this.resultSet.getStatementImpl().getConnectionImpl().getCollection();
       String path = "/schema/fields/" + columnName;
@@ -161,13 +168,13 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData {
     return columnType;
   }
 
-  private boolean checkFunctions(String columnName) {
-    for(String function : functions) {
+  private String getFunctionType(String columnName) {
+    for(String function : functionTypes.keySet()) {
       if(columnName.startsWith(function + "(") && columnName.endsWith(")")) {
-        return true;
+        return functionTypes.get(function);
       }
     }
-    return false;
+    return "";
   }
 
   @Override
