@@ -191,7 +191,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, Object> params = new HashMap<>();
+    Map<String, String> params = new HashMap<>();
 
     params.put(CommonParams.FL, fl);
     params.put(CommonParams.Q, sqlVisitor.query);
@@ -328,7 +328,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, Object> params = new HashMap<>();
+    Map<String, String> params = new HashMap<>();
 
     params.put(CommonParams.FL, fl);
     params.put(CommonParams.Q, sqlVisitor.query);
@@ -416,7 +416,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, Object> params = new HashMap<>();
+    Map<String, String> params = new HashMap<>();
 
     params.put(CommonParams.Q, sqlVisitor.query);
 
@@ -465,7 +465,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, Object> params = new HashMap<>();
+    Map<String, String> params = new HashMap<>();
 
     params.put(CommonParams.Q, sqlVisitor.query);
 
@@ -575,7 +575,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, Object> params = new HashMap<>();
+    Map<String, String> params = new HashMap<>();
 
     params.put("fl", fl);
     params.put("q", sqlVisitor.query);
@@ -625,7 +625,7 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware {
 
     String zkHost = tableSpec.zkHost;
     String collection = tableSpec.collection;
-    Map<String, Object> params = new HashMap<>();
+    Map<String, String> params = new HashMap<>();
 
     params.put(CommonParams.Q, sqlVisitor.query);
 

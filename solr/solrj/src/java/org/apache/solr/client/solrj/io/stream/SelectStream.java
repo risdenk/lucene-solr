@@ -138,12 +138,8 @@ public class SelectStream extends TupleStream implements Expressible {
     return expression;   
   }
 
-  public void setStreamContext(StreamContext context) {
-    this.stream.setStreamContext(context);
-  }
-
   public List<TupleStream> children() {
-    List<TupleStream> l =  new ArrayList();
+    List<TupleStream> l =  new ArrayList<>();
     l.add(stream);
     return l;
   }

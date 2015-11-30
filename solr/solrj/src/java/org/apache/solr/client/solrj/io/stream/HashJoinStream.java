@@ -124,11 +124,6 @@ public class HashJoinStream extends TupleStream implements Expressible {
     return expression;   
   }
 
-  public void setStreamContext(StreamContext context) {
-    this.hashStream.setStreamContext(context);
-    this.fullStream.setStreamContext(context);
-  }
-
   public List<TupleStream> children() {
     List<TupleStream> l =  new ArrayList();
     l.add(hashStream);

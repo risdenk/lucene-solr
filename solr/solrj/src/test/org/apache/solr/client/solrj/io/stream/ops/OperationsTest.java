@@ -17,11 +17,11 @@ package org.apache.solr.client.solrj.io.stream.ops;
  * limitations under the License.
  */
 
+import java.util.HashMap;
 import java.util.Map;
 
 import junit.framework.Assert;
 
-import org.apache.commons.collections.map.HashedMap;
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.solr.client.solrj.io.Tuple;
 import org.apache.solr.client.solrj.io.ops.ReplaceOperation;
@@ -36,14 +36,14 @@ import org.junit.Test;
 public class OperationsTest extends LuceneTestCase {
 
   StreamFactory factory;
-  Map<String, Object> values;
+  Map<Object, Object> values;
   
   public OperationsTest() {
     super();
     
     factory = new StreamFactory()
       .withFunctionName("replace", ReplaceOperation.class);
-    values = new HashedMap();
+    values = new HashMap<>();
   }
     
   @Test

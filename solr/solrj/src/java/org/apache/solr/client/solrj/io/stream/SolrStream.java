@@ -37,17 +37,17 @@ public class SolrStream extends TupleStream {
   private static final long serialVersionUID = 1;
 
   private String baseUrl;
-  private Map<String, Object> params;
+  private Map<String, String> params;
   private boolean trace;
   private Map<String, String> fieldMappings;
   private transient JSONTupleStream jsonTupleStream;
   private transient HttpSolrClient client;
 
-  public SolrStream(String baseUrl, Map<String, Object> params) {
+  public SolrStream(String baseUrl, Map<String, String> params) {
     this(baseUrl, params, new StreamContext());
   }
 
-  public SolrStream(String baseUrl, Map<String, Object> params, StreamContext streamContext) {
+  public SolrStream(String baseUrl, Map<String, String> params, StreamContext streamContext) {
     this.baseUrl = baseUrl;
     this.params = params;
     this.streamContext = streamContext;
@@ -92,7 +92,7 @@ public class SolrStream extends TupleStream {
     this.trace = trace;
   }
 
-  private SolrParams loadParams(Map<String, Object> params) throws IOException {
+  private SolrParams loadParams(Map<String, String> params) throws IOException {
     ModifiableSolrParams solrParams = new ModifiableSolrParams();
     if(params.containsKey("partitionKeys")) {
       if(!params.get("partitionKeys").equals("none")) {
@@ -105,8 +105,8 @@ public class SolrStream extends TupleStream {
       }
     }
 
-    for (Map.Entry<String, Object> entry : params.entrySet()) {
-      solrParams.add(entry.getKey(), String.valueOf(entry.getValue()));
+    for (Map.Entry<String, String> entry : params.entrySet()) {
+      solrParams.add(entry.getKey(), entry.getValue());
     }
 
     return solrParams;

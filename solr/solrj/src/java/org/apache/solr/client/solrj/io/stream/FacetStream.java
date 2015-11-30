@@ -50,13 +50,13 @@ public class FacetStream extends TupleStream  {
   private List<Tuple> tuples = new ArrayList<>();
   private int index;
   private String zkHost;
-  private Map<String, Object> params;
+  private Map<String, String> params;
   private String collection;
   protected transient CloudSolrClient cloudSolrClient;
 
   public FacetStream(String zkHost,
                      String collection,
-                     Map<String, Object> params,
+                     Map<String, String> params,
                      Bucket[] buckets,
                      Metric[] metrics,
                      FieldComparator[] sorts,
@@ -125,11 +125,10 @@ public class FacetStream extends TupleStream  {
     }
   }
 
-  private ModifiableSolrParams getParams(Map<String, Object> props) {
+  private ModifiableSolrParams getParams(Map<String, String> props) {
     ModifiableSolrParams params = new ModifiableSolrParams();
-    for(String key : props.keySet()) {
-      String value = String.valueOf(props.get(key));
-      params.add(key, value);
+    for(Map.Entry<String,String> entry : props.entrySet()) {
+      params.add(entry.getKey(), entry.getValue());
     }
     return params;
   }

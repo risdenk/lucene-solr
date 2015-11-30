@@ -69,7 +69,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
 
   protected String zkHost;
   protected String collection;
-  protected Map<String, Object> params;
+  protected Map<String, String> params;
   private Map<String, String> fieldMappings;
   protected StreamComparator comp;
   private int zkConnectTimeout = 10000;
@@ -85,7 +85,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
   protected CloudSolrStream(){
     
   }
-  public CloudSolrStream(String zkHost, String collectionName, Map<String, Object> params) throws IOException {
+  public CloudSolrStream(String zkHost, String collectionName, Map<String, String> params) throws IOException {
     init(collectionName, zkHost, params);
   }
 
@@ -111,7 +111,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
       throw new IOException(String.format(Locale.ROOT,"invalid expression %s - at least one named parameter expected. eg. 'q=*:*'",expression));
     }
     
-    Map<String, Object> params = new HashMap<>();
+    Map<String, String> params = new HashMap<>();
     for(StreamExpressionNamedParameter namedParam : namedParams){
       if(!namedParam.getName().equals("zkHost") && !namedParam.getName().equals("aliases")){
         params.put(namedParam.getName(), namedParam.getParameter().toString().trim());
@@ -159,7 +159,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
     expression.addParameter(collection);
     
     // parameters
-    for(Entry<String,Object> param : params.entrySet()){
+    for(Entry<String,String> param : params.entrySet()){
       expression.addParameter(new StreamExpressionNamedParameter(param.getKey(), String.valueOf(param.getValue())));
     }
     
@@ -182,7 +182,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
     return expression;   
   }
   
-  private void init(String collectionName, String zkHost, Map<String, Object> params) throws IOException {
+  private void init(String collectionName, String zkHost, Map<String, String> params) throws IOException {
     this.zkHost = zkHost;
     this.collection = collectionName;
     this.params = params;
@@ -298,7 +298,7 @@ public class CloudSolrStream extends TupleStream implements Expressible {
         }
       }
 
-      params.put("distrib", false); // We are the aggregator.
+      params.put("distrib", String.valueOf(false)); // We are the aggregator.
 
       for(Slice slice : slices) {
         Collection<Replica> replicas = slice.getReplicas();

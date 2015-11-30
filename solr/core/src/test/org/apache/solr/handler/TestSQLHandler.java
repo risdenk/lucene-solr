@@ -225,7 +225,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexDoc(sdoc("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50"));
       indexDoc(sdoc("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60"));
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select 'id', field_i, str_s from collection1 where 'text'='XXXX' order by field_i desc");
 
@@ -338,7 +338,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexDoc(sdoc("id", "7", "Text_t", "XXXX XXXX", "Str_s", "c", "Field_i", "50"));
       indexDoc(sdoc("id", "8", "Text_t", "XXXX XXXX", "Str_s", "c", "Field_i", "60"));
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select id, Field_i, Str_s from Collection1 where Text_t='XXXX' order by Field_i desc");
 
@@ -448,7 +448,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexDoc(sdoc("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60"));
       commit();
 
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select id, field_i, str_s from collection1 where text='XXXX' order by field_iff desc");
 
@@ -525,7 +525,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select str_s, 'count(*)', sum('field_i'), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by 'str_s' order by 'sum(field_i)' asc limit 2");
 
@@ -659,7 +659,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select distinct 'str_s', 'field_i' from collection1 order by 'str_s' asc, 'field_i' asc");
@@ -836,7 +836,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select distinct 'str_s', 'field_i' from collection1 order by 'str_s' asc, 'field_i' asc");
 
@@ -1006,7 +1006,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", "2");
       params.put("stmt", "select distinct str_s, field_i from collection1 order by str_s asc, field_i asc");
@@ -1182,7 +1182,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select 'str_s', 'count(*)', sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by 'str_s' order by 'sum(field_i)' asc limit 2");
@@ -1320,7 +1320,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50");
       indexr("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60");
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("numWorkers", "2");
       params.put("stmt", "select str_s, count(*), sum(field_i), min(field_i), max(field_i), avg(field_i) from collection1 where text='XXXX' group by str_s order by sum(field_i) asc limit 2");
@@ -1469,7 +1469,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
     commit();
 
-    Map<String, Object> params = new HashMap<>();
+    Map<String, String> params = new HashMap<>();
     params.put(CommonParams.QT, "/sql");
     params.put("stmt", "select count(*), sum(a_i), min(a_i), max(a_i), avg(a_i), sum(a_f), min(a_f), max(a_f), avg(a_f) from collection1");
 
@@ -1596,7 +1596,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "8", "year_i", "2014", "month_i", "4",  "day_i", "2", "item_i", "1");
 
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", "select year_i, sum(item_i) from collection1 group by year_i order by year_i desc");
 
@@ -1710,7 +1710,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "8", "year_i", "2014", "month_i", "4", "day_i", "2", "item_i", "1");
 
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("aggregationMode", "facet");
       params.put("stmt", "select year_i, sum(item_i) from collection1 group by year_i order by year_i desc");
@@ -1829,9 +1829,9 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       indexr("id", "8", "year_i", "2014", "month_i", "4", "day_i", "2", "item_i", "1");
 
       commit();
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
-      params.put("numWorkers", 2);
+      params.put("numWorkers", String.valueOf(2));
       params.put("stmt", "select year_i, sum(item_i) from collection1 group by year_i order by year_i desc");
 
       SolrStream solrStream = new SolrStream(jetty.url, params);
@@ -1852,7 +1852,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
       params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
-      params.put("numWorkers", 2);
+      params.put("numWorkers", String.valueOf(2));
       params.put("stmt", "select year_i, month_i, sum(item_i) from collection1 group by year_i, month_i order by year_i desc, month_i desc");
 
       solrStream = new SolrStream(jetty.url, params);
@@ -1879,7 +1879,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
 
       params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
-      params.put("numWorkers", 2);
+      params.put("numWorkers", String.valueOf(2));
       params.put("stmt", "select year_i, month_i, day_i, sum(item_i) from collection1 group by year_i, month_i, day_i order by year_i desc, month_i desc, day_i desc");
 
       solrStream = new SolrStream(jetty.url, params);

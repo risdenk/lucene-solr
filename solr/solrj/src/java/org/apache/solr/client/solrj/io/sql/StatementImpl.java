@@ -94,7 +94,7 @@ class StatementImpl implements Statement {
 
       Collections.shuffle(shuffler, new Random());
 
-      Map<String, Object> params = new HashMap<>();
+      Map<String, String> params = new HashMap<>();
       params.put(CommonParams.QT, "/sql");
       params.put("stmt", sql);
       for(String propertyName : this.connection.getProperties().stringPropertyNames()) {

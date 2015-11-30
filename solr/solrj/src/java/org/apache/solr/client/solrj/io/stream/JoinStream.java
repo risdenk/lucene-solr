@@ -41,7 +41,7 @@ public abstract class JoinStream extends TupleStream implements Expressible {
   protected StreamEqualitor eq;
   
   public JoinStream(StreamEqualitor eq, TupleStream first, TupleStream second, TupleStream... others) {
-    this.streams = new ArrayList<PushBackStream>();
+    this.streams = new ArrayList<>();
     
     this.eq = eq;
     
@@ -106,12 +106,6 @@ public abstract class JoinStream extends TupleStream implements Expressible {
     }
     
     return expression;
-  }
-  
-  public void setStreamContext(StreamContext context) {
-    for (PushBackStream stream : streams) {
-      stream.setStreamContext(context);
-    }
   }
   
   public void open() throws IOException {

@@ -256,13 +256,13 @@ public class ParallelStream extends CloudSolrStream implements Expressible {
       Collections.shuffle(shuffler, new Random());
 
       for(int w=0; w<workers; w++) {
-        Map<String, Object> params = new HashMap<>();
+        Map<String, String> params = new HashMap<>();
         params.put("distrib","false"); // We are the aggregator.
-        params.put("numWorkers", workers);
-        params.put("workerID", w);
-        params.put("stream", pushStream);
+        params.put("numWorkers", String.valueOf(workers));
+        params.put("workerID", String.valueOf(w));
+        params.put("stream", String.valueOf(pushStream));
         params.put("qt","/stream");
-        params.put("objectSerialize", objectSerialize);
+        params.put("objectSerialize", String.valueOf(objectSerialize));
         Replica rep = shuffler.get(w);
         ZkCoreNodeProps zkProps = new ZkCoreNodeProps(rep);
         String url = zkProps.getCoreUrl();

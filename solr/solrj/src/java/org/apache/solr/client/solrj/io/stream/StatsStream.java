@@ -48,7 +48,7 @@ public class StatsStream extends TupleStream implements Expressible  {
   private Metric[] metrics;
   private String zkHost;
   private Tuple tuple;
-  private Map<String, Object> params;
+  private Map<String, String> props;
   private String collection;
   private boolean done;
   private long count;
@@ -59,14 +59,14 @@ public class StatsStream extends TupleStream implements Expressible  {
 
   public StatsStream(String zkHost,
                      String collection,
-                     Map<String, Object> params,
+                     Map<String, String> props,
                      Metric[] metrics) {
     init(zkHost, collection, props, metrics);
   }
   
   private void init(String zkHost, String collection, Map<String, String> props, Metric[] metrics) {
     this.zkHost  = zkHost;
-    this.params = params;
+    this.props = props;
     this.metrics = metrics;
     this.collection = collection;
     this.context = new StreamContext();
@@ -170,7 +170,7 @@ public class StatsStream extends TupleStream implements Expressible  {
       cloudSolrClient = new CloudSolrClient(zkHost);
     }
 
-    ModifiableSolrParams params = getParams(this.params);
+    ModifiableSolrParams params = getParams(this.props);
     addStats(params, metrics);
     params.add("stats", "true");
     params.add("rows", "0");
@@ -255,7 +255,7 @@ public class StatsStream extends TupleStream implements Expressible  {
     }
   }
 
-  private ModifiableSolrParams getParams(Map<String, Object> props) {
+  private ModifiableSolrParams getParams(Map<String, String> props) {
     ModifiableSolrParams params = new ModifiableSolrParams();
     for(String key : props.keySet()) {
       String value = String.valueOf(props.get(key));
