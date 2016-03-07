@@ -80,6 +80,9 @@
         <include name="*.jar"/>
       </fileset>
     </copy>
+    <jar destfile="${dist}/${name}-jdbc-${version}.jar">
+      <zipgroupfileset dir="${dist}" includes="solrj-lib/*.jar ${fullnamever}.jar" />
+    </jar>
   </target>
 
   <target name="-dist-maven" depends="-dist-maven-src-java"/>
