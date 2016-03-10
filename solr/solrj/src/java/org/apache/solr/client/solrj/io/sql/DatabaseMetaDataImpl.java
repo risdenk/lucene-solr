@@ -37,7 +37,7 @@ class DatabaseMetaDataImpl implements DatabaseMetaData {
   private final ConnectionImpl connection;
   private final Statement connectionStatement;
 
-  public DatabaseMetaDataImpl(ConnectionImpl connection, Statement connectionStatement) {
+  DatabaseMetaDataImpl(ConnectionImpl connection, Statement connectionStatement) {
     this.connection = connection;
     this.connectionStatement = connectionStatement;
   }
@@ -74,7 +74,7 @@ class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public String getUserName() throws SQLException {
-    return null;
+    return this.connection.getProperties().getProperty("username");
   }
 
   @Override

@@ -46,7 +46,7 @@ public class JSONTupleStream {
   private JSONParser parser;
   private boolean atDocs;
 
-  public JSONTupleStream(Reader reader) {
+  private JSONTupleStream(Reader reader) {
     this.reader = reader;
     this.parser = new JSONParser(reader);
   }
@@ -63,6 +63,7 @@ public class JSONTupleStream {
     query.setPath(p);
     query.setResponseParser(new InputStreamResponseParser("json"));
     query.setMethod(SolrRequest.METHOD.POST);
+    query.setBasicAuthCredentials(requestParams.get("username"), requestParams.get("password"));
     NamedList<Object> genericResponse = server.request(query);
     InputStream stream = (InputStream)genericResponse.get("stream");
     InputStreamReader reader = new InputStreamReader(stream, "UTF-8");

@@ -17,6 +17,7 @@
 package org.apache.solr.client.solrj.io.sql;
 
 import java.io.File;
+import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -28,15 +29,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
+import java.util.Random;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.Charsets;
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.LuceneTestCase.Slow;
 import org.apache.solr.cloud.AbstractFullDistribZkTestBase;
 import org.apache.solr.cloud.AbstractZkTestCase;
+import org.apache.solr.common.cloud.ZkStateReader;
+import org.apache.solr.security.Sha256AuthenticationProvider;
+import org.apache.zookeeper.CreateMode;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -51,6 +56,8 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
 
   private static final String SOLR_HOME = getFile("solrj" + File.separator + "solr").getAbsolutePath();
 
+  private static final String USERNAME = "solr";
+  private static final String PASSWORD = "SolrRocks";
 
   static {
     schemaString = "schema-sql.xml";
@@ -79,6 +86,32 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
   @Override
   public void distribSetUp() throws Exception {
     super.distribSetUp();
+
+    // Sets up basic auth with user solr and password SolrRocks
+    // Enables read permissions for solr user
+    final Random r = new SecureRandom();
+    byte[] salt = new byte[32];
+    r.nextBytes(salt);
+    String saltBase64 = Base64.encodeBase64String(salt);
+    String val = Sha256AuthenticationProvider.sha256(PASSWORD, saltBase64) + " " + saltBase64;
+    try (ZkStateReader zkStateReader = new ZkStateReader(zkServer.getZkAddress(),
+        DEFAULT_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT)) {
+      zkStateReader.getZkClient().create(ZkStateReader.SOLR_SECURITY_CONF_PATH,
+          ("{\n" +
+              "  \"authentication\":{\n" +
+              "    \"class\":\"solr.BasicAuthPlugin\",\n" +
+              "    \"credentials\":{\n" +
+              "      \"" + USERNAME + "\":\"" + val + "\"},\n" +
+              "    \"\":{\"v\":1}},\n" +
+              "  \"authorization\":{\n" +
+              "    \"class\":\"solr.RuleBasedAuthorizationPlugin\",\n" +
+              "    \"permissions\":[\n" +
+              "      {\n" +
+              "        \"name\":\"read\",\n" +
+              "        \"role\":[\"admin\"]}],\n" +
+              "    \"user-role\":{\"" + USERNAME + "\":\"admin\"}}}").getBytes(Charsets.UTF_8),
+          CreateMode.PERSISTENT, true);
+    }
   }
 
 
@@ -111,6 +144,8 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     String zkHost = zkServer.getZkAddress();
 
     Properties props = new Properties();
+    props.setProperty("username", USERNAME);
+    props.setProperty("password", PASSWORD);
 
     try (Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
       try (Statement stmt = con.createStatement()) {
@@ -206,6 +241,8 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     //Test facet aggregation
     props = new Properties();
     props.put("aggregationMode", "facet");
+    props.setProperty("username", USERNAME);
+    props.setProperty("password", PASSWORD);
     try (Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
       try (Statement stmt = con.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("select a_s, sum(a_f) from collection1 group by a_s " +
@@ -241,6 +278,8 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     props = new Properties();
     props.put("aggregationMode", "map_reduce");
     props.put("numWorkers", "2");
+    props.setProperty("username", USERNAME);
+    props.setProperty("password", PASSWORD);
     try (Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
       try (Statement stmt = con.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("select a_s, sum(a_f) from collection1 group by a_s " +
@@ -274,12 +313,14 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     
     //Test params on the url
     try (Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + 
-        "?collection=collection1&aggregationMode=map_reduce&numWorkers=2")) {
+        "?collection=collection1&aggregationMode=map_reduce&numWorkers=2&username=solr&password=SolrRocks")) {
 
       Properties p = ((ConnectionImpl) con).getProperties();
 
-      assert(p.getProperty("aggregationMode").equals("map_reduce"));
-      assert(p.getProperty("numWorkers").equals("2"));
+      assertEquals("map_reduce", p.getProperty("aggregationMode"));
+      assertEquals("2", p.getProperty("numWorkers"));
+      assertEquals(USERNAME, p.getProperty("username"));
+      assertEquals(PASSWORD, p.getProperty("password"));
 
       try (Statement stmt = con.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("select a_s, sum(a_f) from collection1 group by a_s " +
@@ -311,13 +352,13 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
       }
     }
 
-    // Test JDBC paramters in URL
+    // Test JDBC parameters in URL
     try (Connection con = DriverManager.getConnection(
-        "jdbc:solr://" + zkHost + "?collection=collection1&username=&password=&testKey1=testValue&testKey2")) {
+        "jdbc:solr://" + zkHost + "?collection=collection1&username=solr&password=SolrRocks&testKey1=testValue&testKey2")) {
 
       Properties p = ((ConnectionImpl) con).getProperties();
-      assertEquals("", p.getProperty("username"));
-      assertEquals("", p.getProperty("password"));
+      assertEquals(USERNAME, p.getProperty("username"));
+      assertEquals(PASSWORD, p.getProperty("password"));
       assertEquals("testValue", p.getProperty("testKey1"));
       assertEquals("", p.getProperty("testKey2"));
 
@@ -354,15 +395,15 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     // Test JDBC paramters in properties
     Properties providedProperties = new Properties();
     providedProperties.put("collection", "collection1");
-    providedProperties.put("username", "");
-    providedProperties.put("password", "");
+    providedProperties.put("username", USERNAME);
+    providedProperties.put("password", PASSWORD);
     providedProperties.put("testKey1", "testValue");
     providedProperties.put("testKey2", "");
 
     try (Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost, providedProperties)) {
       Properties p = ((ConnectionImpl) con).getProperties();
-      assert(p.getProperty("username").equals(""));
-      assert(p.getProperty("password").equals(""));
+      assert(p.getProperty("username").equals(USERNAME));
+      assert(p.getProperty("password").equals(PASSWORD));
       assert(p.getProperty("testKey1").equals("testValue"));
       assert(p.getProperty("testKey2").equals(""));
 
@@ -396,10 +437,11 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
       }
     }
 
-
     //Test error propagation
     props = new Properties();
     props.put("aggregationMode", "facet");
+    props.setProperty("username", USERNAME);
+    props.setProperty("password", PASSWORD);
     try (Connection con = DriverManager.getConnection("jdbc:solr://" + zkHost + "?collection=collection1", props)) {
       try (Statement stmt = con.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("select crap from collection1 group by a_s " +
@@ -418,15 +460,19 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
     String collection = DEFAULT_COLLECTION;
 
     String connectionString1 = "jdbc:solr://" + zkServer.getZkAddress() + "?collection=" + collection +
-        "&username=&password=&testKey1=testValue&testKey2";
+        "&testKey1=testValue&testKey2";
     Properties properties1 = new Properties();
+    properties1.setProperty("username", USERNAME);
+    properties1.setProperty("password", PASSWORD);
 
     String sql = "select id, a_i, a_s, a_f as my_float_col, testnull_i from " + collection +
         " order by a_i desc";
 
     String connectionString2 = "jdbc:solr://" + zkServer.getZkAddress() + "?collection=" + collection +
-        "&aggregationMode=map_reduce&numWorkers=2&username=&password=&testKey1=testValue&testKey2";
+        "&aggregationMode=map_reduce&numWorkers=2&testKey1=testValue&testKey2";
     Properties properties2 = new Properties();
+    properties2.setProperty("username", USERNAME);
+    properties2.setProperty("password", PASSWORD);
 
     String sql2 = sql + " limit 2";
 
@@ -474,6 +520,8 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
         assertEquals(zkServer.getZkAddress(), rs.getString("TABLE_CAT"));
         assertFalse(rs.next());
       }
+
+      assertEquals(USERNAME, databaseMetaData.getUserName());
 
       List<String> collections = new ArrayList<>();
       collections.addAll(cloudClient.getZkStateReader().getClusterState().getCollections());
