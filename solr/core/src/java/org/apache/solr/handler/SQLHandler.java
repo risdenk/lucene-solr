@@ -79,6 +79,7 @@ import org.apache.solr.util.plugin.SolrCoreAware;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,7 +180,6 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware , Pe
       Statement statement = parser.createStatement(sql);
 
       SQLVisitor sqlVistor = new SQLVisitor(new StringBuilder());
-
       sqlVistor.process(statement, new Integer(0));
       sqlVistor.reverseAliases();
 
@@ -200,6 +200,16 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware , Pe
           }
         }
         sqlStream = new SelectStream(new ColumnsStream(defaultZkhost, table), sqlVistor.columnAliases);
+      } else if (sql.contains("*") && !sql.contains("(*)")) { //check for a select *, but avoid select count(*)
+        CloudSolrClient cloudSolrClient = new CloudSolrClient(defaultZkhost);
+        Map<String, LukeResponse.FieldInfo> fieldColumns = getColumns(cloudSolrClient, sqlVistor.table);
+        cloudSolrClient.close();
+        Set<String> fieldSet = new TreeSet<>(fieldColumns.keySet());
+        //remove duplicate Columns
+        fieldSet.removeAll(sqlVistor.fields);
+        String fieldsForSQL = String.join(", ", fieldSet);
+        String newSQL = sql.replace("*", fieldsForSQL);
+        return parse(newSQL, numWorkers, workerCollection, workerZkhost, aggregationMode, includeMetadata, context);
       } else if(sqlVistor.groupByQuery) {
         if(aggregationMode == AggregationMode.FACET) {
           sqlStream = doGroupByWithAggregatesFacets(sqlVistor);

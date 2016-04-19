@@ -104,6 +104,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     testSchemasStream();
     testTablesStream();
     testColumnStream();
+    testSelectStar();
   }
 
   private void testPredicate() throws Exception {
@@ -2520,6 +2521,95 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       }
     }
   }
+
+  private void testSelectStar() throws Exception {
+    try {
+
+      CloudJettyRunner jetty = this.cloudJettys.get(0);
+
+      del("*:*");
+
+      commit();
+
+      indexDoc(sdoc("id", "1", "text", "XXXX XXXX", "str_s", "a", "field_i", "7"));
+      indexDoc(sdoc("id", "2", "text", "XXXX XXXX", "str_s", "b", "field_i", "8"));
+      indexDoc(sdoc("id", "3", "text", "XXXX XXXX", "str_s", "a", "field_i", "20"));
+      indexDoc(sdoc("id", "4", "text", "XXXX XXXX", "str_s", "b", "field_i", "11"));
+      indexDoc(sdoc("id", "5", "text", "XXXX XXXX", "str_s", "c", "field_i", "30"));
+      indexDoc(sdoc("id", "6", "text", "XXXX XXXX", "str_s", "c", "field_i", "40"));
+      indexDoc(sdoc("id", "7", "text", "XXXX XXXX", "str_s", "c", "field_i", "50"));
+      indexDoc(sdoc("id", "8", "text", "XXXX XXXX", "str_s", "c", "field_i", "60"));
+      commit();
+      Map params = new HashMap();
+      params.put(CommonParams.QT, "/sql");
+      params.put("stmt", "select * from collection1 order by id desc limit 1000");
+
+      SolrStream solrStream = new SolrStream(jetty.url, params);
+      List<Tuple> tuples = getTuples(solrStream);
+
+      assertEquals(8,tuples.size());
+
+      Tuple tuple = tuples.get(0);
+      assertEquals(new Long(8), tuple.getLong("id"));
+      assertEquals(new Long(60), tuple.getLong("field_i"));
+      assertEquals("c", tuple.get("str_s"));
+
+      tuple = tuples.get(1);
+      assertEquals(new Long(7), tuple.getLong("id"));
+      assertEquals(new Long(50), tuple.getLong("field_i"));
+      assertEquals("c", tuple.get("str_s"));
+
+      tuple = tuples.get(2);
+      assertEquals(new Long(6), tuple.getLong("id"));
+      assertEquals(new Long(40), tuple.getLong("field_i"));
+      assertEquals("c", tuple.get("str_s"));
+
+      tuple = tuples.get(3);
+      assertEquals(new Long(5), tuple.getLong("id"));
+      assertEquals(new Long(30), tuple.getLong("field_i"));
+      assertEquals("c", tuple.get("str_s"));
+
+      tuple = tuples.get(4);
+      assertEquals(new Long(4), tuple.getLong("id"));
+      assertEquals(new Long(11), tuple.getLong("field_i"));
+      assertEquals("b", tuple.get("str_s"));
+
+      tuple = tuples.get(5);
+      assertEquals(new Long(3), tuple.getLong("id"));
+      assertEquals(new Long(20), tuple.getLong("field_i"));
+      assertEquals("a", tuple.get("str_s"));
+
+      tuple = tuples.get(6);
+      assertEquals(new Long(2), tuple.getLong("id"));
+      assertEquals(new Long(8), tuple.getLong("field_i"));
+      assertEquals("b", tuple.get("str_s"));
+
+      tuple = tuples.get(7);
+      assertEquals(new Long(1), tuple.getLong("id"));
+      assertEquals(new Long(7), tuple.getLong("field_i"));
+      assertEquals("a", tuple.get("str_s"));
+
+//      Test de-duplication of fields during select *
+      params = new HashMap();
+      params.put(CommonParams.QT, "/sql");
+      params.put("stmt", "select field_i, * from collection1 order by id desc limit 1000");
+
+      solrStream = new SolrStream(jetty.url, params);
+      tuples = getTuples(solrStream);
+
+      assertEquals(8, tuples.size());
+
+      tuple = tuples.get(0);
+      assertEquals(7, tuple.fields.keySet().size());
+      assertEquals(new Long(8), tuple.getLong("id"));
+      assertEquals(new Long(60), tuple.getLong("field_i"));
+      assertEquals("c", tuple.get("str_s"));
+
+    } finally {
+      delete();
+    }
+  }
+
 
   protected List<Tuple> getTuples(TupleStream tupleStream) throws IOException {
     tupleStream.open();
