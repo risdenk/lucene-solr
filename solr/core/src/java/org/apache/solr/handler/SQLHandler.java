@@ -18,6 +18,8 @@ package org.apache.solr.handler;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.sql.DatabaseMetaData;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -29,7 +31,10 @@ import com.facebook.presto.sql.tree.*;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.io.Tuple;
 import org.apache.solr.client.solrj.io.comp.ComparatorOrder;
 import org.apache.solr.client.solrj.io.comp.FieldComparator;
@@ -54,6 +59,10 @@ import org.apache.solr.client.solrj.io.stream.expr.StreamExplanation;
 import org.apache.solr.client.solrj.io.stream.expr.StreamFactory;
 import org.apache.solr.client.solrj.io.stream.expr.Explanation.ExpressionType;
 import org.apache.solr.client.solrj.io.stream.metrics.*;
+import org.apache.solr.client.solrj.request.LukeRequest;
+import org.apache.solr.client.solrj.request.schema.SchemaRequest;
+import org.apache.solr.client.solrj.response.LukeResponse;
+import org.apache.solr.client.solrj.response.schema.SchemaResponse;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.cloud.ZkStateReader;
 import org.apache.solr.common.params.CommonParams;
@@ -175,13 +184,22 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware , Pe
       sqlVistor.reverseAliases();
 
       TupleStream sqlStream = null;
-
       if(sqlVistor.table.toUpperCase(Locale.ROOT).contains("_CATALOGS_")) {
         sqlStream = new SelectStream(new CatalogsStream(defaultZkhost), sqlVistor.columnAliases);
       } else if(sqlVistor.table.toUpperCase(Locale.ROOT).contains("_SCHEMAS_")) {
         sqlStream = new SelectStream(new SchemasStream(defaultZkhost), sqlVistor.columnAliases);
       } else if(sqlVistor.table.toUpperCase(Locale.ROOT).contains("_TABLES_")) {
         sqlStream = new SelectStream(new TableStream(defaultZkhost), sqlVistor.columnAliases);
+      } else if (sqlVistor.table.toUpperCase(Locale.ROOT).contains("_COLUMNS_")) {
+        String where = sqlVistor.query.replace("(", "").replace(")", "").replace("\"", "");
+        String[] splits = where.split(":");
+        String table = defaultWorkerCollection;
+        for (int i = 0 ; i < splits.length; i++) {
+          if (splits[i].contains("TABLE_NAME")){
+            table = splits[i+1];
+          }
+        }
+        sqlStream = new SelectStream(new ColumnsStream(defaultZkhost, table), sqlVistor.columnAliases);
       } else if(sqlVistor.groupByQuery) {
         if(aggregationMode == AggregationMode.FACET) {
           sqlStream = doGroupByWithAggregatesFacets(sqlVistor);
@@ -1446,6 +1464,180 @@ public class SQLHandler extends RequestHandlerBase implements SolrCoreAware , Pe
 
     public void setStreamContext(StreamContext context) {
       this.context = context;
+    }
+  }
+
+  static Map<String, LukeResponse.FieldInfo> getColumns(CloudSolrClient cloudSolrClient, String collection) {
+    Map<String, LukeResponse.FieldInfo> lukeResponseMap = new HashMap<>();
+    cloudSolrClient.connect();
+    ZkStateReader zkStateReader = cloudSolrClient.getZkStateReader();
+    Set<String> liveNodes = zkStateReader.getClusterState().getLiveNodes();
+    SolrClient solrClient = null;
+    for (String node : liveNodes) {
+      try {
+        String nodeURL = zkStateReader.getBaseUrlForNodeName(node);
+        solrClient = new HttpSolrClient(nodeURL + "/" + collection);
+        LukeRequest lukeRequest = new LukeRequest();
+
+        lukeRequest.setNumTerms(1);
+        LukeResponse lukeResponse = lukeRequest.process(solrClient);
+
+        lukeResponseMap.putAll(lukeResponse.getFieldInfo());
+      } catch (SolrException | SolrServerException | IOException ignore) {
+
+      } finally {
+        if (solrClient != null) {
+          try {
+            solrClient.close();
+          } catch (IOException ignore) {
+            // Don't worry about failing to close the Solr client
+          }
+        }
+      }
+    }
+    return lukeResponseMap;
+  }
+
+  static String getUniqueKey(CloudSolrClient cloudSolrClient, String collection) {
+    String uniqueKey = "";
+    cloudSolrClient.connect();
+    ZkStateReader zkStateReader = cloudSolrClient.getZkStateReader();
+    Set<String> liveNodes = zkStateReader.getClusterState().getLiveNodes();
+    SolrClient solrClient = null;
+    for (String node : liveNodes) {
+      try {
+        String nodeURL = zkStateReader.getBaseUrlForNodeName(node);
+        solrClient = new HttpSolrClient(nodeURL + "/" + collection);
+        SchemaRequest.UniqueKey schemaRequest = new SchemaRequest.UniqueKey();
+        SchemaResponse.UniqueKeyResponse schemaResponse = schemaRequest.process(solrClient);
+        uniqueKey = schemaResponse.getUniqueKey();
+      } catch (SolrException | SolrServerException | IOException ignore) {
+        //Do nothing, hopefully one of the instances responds
+      } finally {
+        if (solrClient != null) {
+          try {
+            solrClient.close();
+          } catch (IOException ignore) {
+            // Don't worry about failing to close the Solr client
+          }
+        }
+      }
+    }
+    return uniqueKey;
+  }
+
+  private static class ColumnsStream extends TupleStream {
+
+    private final String table;
+    private final String catalog;
+    private Iterator<Map.Entry<String, LukeResponse.FieldInfo>> lukeIterator;
+    private int ordinalPosition = 0;
+    private StreamContext context;
+    private String uniqueKey;
+
+    public  ColumnsStream(String catalog, String table) {
+      this.catalog = catalog;
+      this.table = table;
+    }
+
+    @Override
+    public void setStreamContext(StreamContext context) {
+      this.context = context;
+    }
+
+    @Override
+    public List<TupleStream> children() { return null; }
+
+    @Override
+    public void open() throws IOException {
+      CloudSolrClient cloudSolrClient = this.context.getSolrClientCache().getCloudSolrClient(defaultZkhost);
+      this.uniqueKey = getUniqueKey(cloudSolrClient, this.table);
+      this.lukeIterator = getColumns(cloudSolrClient, this.table).entrySet().iterator();
+    }
+
+    @Override
+    public void close() throws IOException {
+
+    }
+
+    private int convertTypeToSQLType(String columnType) {
+      switch (columnType) {
+        case "string":
+          return Types.VARCHAR;
+        case "integer":
+          return Types.INTEGER;
+        case "int":
+          return Types.INTEGER;
+        case "long":
+          return Types.BIGINT;
+        case "double":
+          return Types.DOUBLE;
+        default:
+          return Types.JAVA_OBJECT;
+      }
+    }
+
+    @Override
+    public Tuple read() throws IOException {
+      Map fields = new HashMap<>();
+      boolean handledField = false;
+
+      if (this.lukeIterator.hasNext()) {
+        Map.Entry e = this.lukeIterator.next();
+        String fieldName = e.getKey().toString();
+        LukeResponse.FieldInfo fieldInfo = (LukeResponse.FieldInfo) e.getValue();
+        fields.put("COLUMN_NAME", fieldName);
+        int sqlType = convertTypeToSQLType(fieldInfo.getType());
+        fields.put("DATA_TYPE", sqlType);
+        fields.put("TYPE_NAME", fieldInfo.getType());
+        if (fieldName.equals(this.uniqueKey)){
+          fields.put("NULLABLE", DatabaseMetaData.columnNoNulls);
+          fields.put("IS_NULLABLE", "NO");
+        } else {
+          fields.put("NULLABLE", DatabaseMetaData.columnNullable);
+          fields.put("IS_NULLABLE", "YES");
+        }
+        handledField = true;
+      } else {
+        fields.put("EOF", "true");
+      }
+
+      if (handledField) {
+        this.ordinalPosition += 1;
+        fields.put("TABLE_CAT", this.catalog); //ZKhost
+        fields.put("TABLE_NAME", this.table);
+
+        fields.put("COLUMN_SIZE", null);
+        fields.put("BUFFER_LENGTH", null);
+        fields.put("DECIMAL_DIGITS", null);
+        fields.put("NUM_PREC_RADIX", null);
+        fields.put("REMARKS", null);
+        fields.put("COLUMN_DEF", null);
+        fields.put("SQL_DATA_TYPE", null);
+        fields.put("SQL_DATETIME_SUB", null);
+        fields.put("CHAR_OCTET_LENGTH", null);
+        fields.put("ORDINAL_POSITION", this.ordinalPosition);
+        fields.put("SCOPE_CATALOG", null);
+        fields.put("SCOPE_SCHEMA", null);
+        fields.put("SCOPE_TABLES", null);
+        fields.put("SCOURCE_DATA_TYPE", null);
+        fields.put("IS_AUTOINCREMENT", "NO");
+        fields.put("IS_GENERATEDCOLUMN", "NO");
+
+      }
+      return new Tuple(fields);
+    }
+
+    @Override
+    public StreamComparator getStreamSort() { return null; }
+
+    @Override
+    public Explanation toExplanation(StreamFactory factory) throws IOException {
+      return new StreamExplanation(getStreamNodeId().toString())
+          .withFunctionName("SQL COLUMNS")
+          .withExpression("--non-expressible--")
+          .withImplementingClass(this.getClass().getName())
+          .withExpressionType(ExpressionType.STREAM_DECORATOR);
     }
   }
 

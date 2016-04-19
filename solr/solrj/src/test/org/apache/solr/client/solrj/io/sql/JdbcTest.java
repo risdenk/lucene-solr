@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.LuceneTestCase.Slow;
 import org.apache.solr.cloud.AbstractFullDistribZkTestBase;
@@ -473,6 +474,7 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
       }
 
       List<String> collections = new ArrayList<>();
+      cloudClient.connect();
       collections.addAll(cloudClient.getZkStateReader().getClusterState().getCollections());
       Collections.sort(collections);
 
@@ -495,6 +497,17 @@ public class JdbcTest extends AbstractFullDistribZkTestBase {
       assertTrue(con.isReadOnly());
       con.setReadOnly(true);
       assertTrue(con.isReadOnly());
+
+      try(ResultSet rs = databaseMetaData.getColumns(zkServer.getZkAddress(), null, collection, null)) {
+        while(rs.next()) {
+          assertTrue(rs.getString("IS_NULLABLE").equals("YES") || rs.getString("IS_NULLABLE").equals("NO"));
+          assertTrue(rs.getDouble("NULLABLE") == 1.0 || rs.getDouble("NULLABLE") == 0.0);
+          assertTrue(NumberUtils.isNumber(rs.getString("DATA_TYPE")));
+          assertNotNull(rs.getString("TYPE_NAME"));
+          assertNotNull(rs.getString("COLUMN_NAME"));
+        }
+        assertFalse(rs.next());
+      }
 
       assertNull(con.getWarnings());
       con.clearWarnings();

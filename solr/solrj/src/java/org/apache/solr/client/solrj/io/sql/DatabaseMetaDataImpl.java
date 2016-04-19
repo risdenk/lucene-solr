@@ -725,7 +725,8 @@ class DatabaseMetaDataImpl implements DatabaseMetaData {
 
   @Override
   public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-    return null;
+    return this.connectionStatement.executeQuery("select COLUMN_NAME, DATA_TYPE, TYPE_NAME, NULLABLE, " +
+        "IS_NULLABLE from _COLUMNS_ where TABLE_NAME = " + tableNamePattern);
   }
 
   @Override

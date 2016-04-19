@@ -25,6 +25,7 @@ import java.util.Map;
 
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.tree.Statement;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.solr.client.solrj.io.Tuple;
 import org.apache.solr.client.solrj.io.stream.ExceptionStream;
 import org.apache.solr.client.solrj.io.stream.SolrStream;
@@ -102,6 +103,7 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
     testCatalogStream();
     testSchemasStream();
     testTablesStream();
+    testColumnStream();
   }
 
   private void testPredicate() throws Exception {
@@ -2486,6 +2488,36 @@ public class TestSQLHandler extends AbstractFullDistribZkTestBase {
       assertTrue(collections.contains(tuple.getString("TABLE_NAME")));
       assertEquals("TABLE", tuple.getString("TABLE_TYPE"));
       assertNull(tuple.get("REMARKS"));
+    }
+  }
+
+  private void testColumnStream() throws Exception {
+    CloudJettyRunner jetty = this.cloudJettys.get(0);
+
+    List<String> collections = new ArrayList<>();
+    collections.addAll(cloudClient.getZkStateReader().getClusterState().getCollections());
+    Collections.sort(collections);
+
+    for (String collection : collections) {
+      Map<String, Object> params = new HashMap<>();
+      params.put(CommonParams.QT, "/sql");
+      params.put("numWorkers", 2);
+      params.put("stmt", "select COLUMN_NAME, DATA_TYPE, TYPE_NAME, NULLABLE, " +
+          "IS_NULLABLE from _COLUMNS_ where TABLE_NAME = " + collection);
+
+      SolrStream solrStream = new SolrStream(jetty.url, params);
+      List<Tuple> tuples = getTuples(solrStream);
+
+      assertTrue(tuples.size() >= 1);
+
+      for (Tuple tuple : tuples) {
+        assertEquals(5, tuple.fields.size());
+        assertTrue(tuple.getString("IS_NULLABLE").equals("YES") || tuple.getString("IS_NULLABLE").equals("NO"));
+        assertTrue(tuple.getDouble("NULLABLE") == 1.0 || tuple.getDouble("NULLABLE") == 0.0);
+        assertTrue(NumberUtils.isNumber(tuple.getString("DATA_TYPE")));
+        assertNotNull(tuple.getString("TYPE_NAME"));
+        assertNotNull(tuple.getString("COLUMN_NAME"));
+      }
     }
   }
 
