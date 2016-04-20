@@ -50,7 +50,7 @@ class StatementImpl implements Statement {
     this.connection = connection;
   }
 
-  private void checkClosed() throws SQLException {
+  void checkClosed() throws SQLException {
     if(isClosed()) {
       throw new SQLException("Statement is closed.");
     }

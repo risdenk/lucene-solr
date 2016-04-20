@@ -629,6 +629,44 @@ public class JdbcTest extends SolrCloudTestCase {
 
         assertFalse(statement.getMoreResults());
       }
+
+      String preparedSQL = "select id, a_i, a_s, a_f as my_float_col, testnull_i from " +
+          collection + " where a_i = ? or a_i = ? order by a_i desc limit 2";
+      try (PreparedStatement statement = con.prepareStatement(preparedSQL)) {
+        assertEquals(2, ((PreparedStatementImpl)statement).numParameters);
+
+        statement.setLong(1, 14L);
+        statement.setLong(2, 13L);
+
+        assertEquals(con, statement.getConnection());
+
+        assertNull(statement.getWarnings());
+        statement.clearWarnings();
+        assertNull(statement.getWarnings());
+
+        assertEquals(0, statement.getFetchSize());
+        statement.setFetchSize(0);
+        assertEquals(0, statement.getFetchSize());
+
+        try (ResultSet rs = statement.executeQuery()) {
+          assertEquals(statement, rs.getStatement());
+
+          checkResultSetMetadata(rs);
+          checkResultSet(rs);
+        }
+
+        assertTrue(statement.execute());
+        assertEquals(-1, statement.getUpdateCount());
+
+        try (ResultSet rs = statement.getResultSet()) {
+          assertEquals(statement, rs.getStatement());
+
+          checkResultSetMetadata(rs);
+          checkResultSet(rs);
+        }
+
+        assertFalse(statement.getMoreResults());
+      }
     }
   }
 
