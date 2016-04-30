@@ -127,6 +127,8 @@
     <dependency org="org.apache.calcite" name="calcite-core" rev="${/org.apache.calcite/calcite-core}" conf="compile"/>
     <dependency org="org.apache.calcite" name="calcite-linq4j" rev="${/org.apache.calcite/calcite-linq4j}" conf="compile"/>
     <dependency org="org.apache.calcite.avatica" name="avatica-core" rev="${/org.apache.calcite.avatica/avatica-core}" conf="compile"/>
+    <dependency org="org.apache.calcite.avatica" name="avatica-metrics" rev="${/org.apache.calcite.avatica/avatica-metrics}" conf="compile"/>
+    <dependency org="org.apache.calcite.avatica" name="avatica-server" rev="${/org.apache.calcite.avatica/avatica-server}" conf="compile"/>
     <dependency org="org.apache.commons" name="commons-lang3" rev="${/org.apache.commons/commons-lang3}" conf="compile"/>
     <dependency org="net.hydromatic" name="eigenbase-properties" rev="${/net.hydromatic/eigenbase-properties}" conf="compile"/>
     <dependency org="org.codehaus.janino" name="janino" rev="${/org.codehaus.janino/janino}" conf="compile"/>

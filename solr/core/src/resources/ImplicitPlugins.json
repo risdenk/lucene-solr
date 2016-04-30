@@ -141,6 +141,14 @@
         "distrib": false
       }
     },
+    "/avatica": {
+      "class": "solr.AvaticaHandler",
+      "useParams":"_AVATICA",
+      "invariants": {
+        "wt": "raw",
+        "distrib": false
+      }
+    },
     "/terms": {
       "class": "solr.SearchHandler",
       "useParams":"_TERMS",
