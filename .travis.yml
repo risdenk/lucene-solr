@@ -5,6 +5,7 @@ addons:
   apt:
     packages:
     - python3
+    - oracle-java8-installer
 git:
   depth: 1
 branches:
