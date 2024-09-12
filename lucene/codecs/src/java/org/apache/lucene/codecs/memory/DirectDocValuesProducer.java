@@ -590,11 +590,12 @@ class DirectDocValuesProducer extends DocValuesProducer {
           IndexInput data = this.data.clone();
           data.seek(offset);
           assert length % 8 == 0;
-          long bits[] = new long[(int) length >> 3];
-          for (int i = 0; i < bits.length; i++) {
-            bits[i] = data.readLong();
+          int len = (int) length >> 3;
+          FixedBitSet.BitsBuilder bits = new FixedBitSet.BitsBuilder(len);
+          for (int i = 0; i < len; i++) {
+            bits.set(i, data.readLong());
           }
-          instance = new FixedBitSet(bits, maxDoc);
+          instance = new FixedBitSet(bits,  maxDoc);
           if (!merging) {
             docsWithFieldInstances.put(field.name, instance);
             ramBytesUsed.addAndGet(instance.ramBytesUsed());

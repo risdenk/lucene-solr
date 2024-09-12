@@ -58,9 +58,7 @@ final class IndexedDISI extends DocIdSetIterator {
     out.writeShort((short) (cardinality - 1));
     if (cardinality > MAX_ARRAY_LENGTH) {
       if (cardinality != 65536) { // all docs are set
-        for (long word : buffer.getBits()) {
-          out.writeLong(word);
-        }
+        buffer.writeTo(out, false);
       }
     } else {
       BitSetIterator it = new BitSetIterator(buffer, cardinality);

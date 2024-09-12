@@ -207,7 +207,7 @@ public class DocSetUtil {
 
 
   private static DocSet createBigSet(List<LeafReaderContext> leaves, PostingsEnum[] postList, int maxDoc, int firstReader) throws IOException {
-    long[] bits = new long[FixedBitSet.bits2words(maxDoc)];
+    FixedBitSet.BitsBuilder bitsBuilder = new FixedBitSet.BitsBuilder(FixedBitSet.bits2words(maxDoc));
     int sz = 0;
     for (int i = firstReader; i < postList.length; i++) {
       PostingsEnum postings = postList[i];
@@ -220,12 +220,12 @@ public class DocSetUtil {
         if (subId == DocIdSetIterator.NO_MORE_DOCS) break;
         if (liveDocs != null && !liveDocs.get(subId)) continue;
         int globalId = subId + base;
-        bits[globalId >> 6] |= (1L << globalId);
+        bitsBuilder.or(globalId >> 6, (1L << globalId));
         sz++;
       }
     }
 
-    BitDocSet docSet = new BitDocSet( new FixedBitSet(bits, maxDoc), sz );
+    BitDocSet docSet = new BitDocSet( new FixedBitSet(bitsBuilder, maxDoc), sz );
 
     int smallSetSize = smallSetSize(maxDoc);
     if (sz < smallSetSize) {
